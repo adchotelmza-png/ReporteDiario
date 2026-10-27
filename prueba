@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro Diario - Hotel</title>
+    
+    <link id="theme-stylesheet" rel="stylesheet" href="dark.css">
+    
+    <style>
+        .hidden { display: none; }
+        .multiselect-dropdown::-webkit-scrollbar { width: 8px; }
+        .multiselect-dropdown::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .multiselect-dropdown::-webkit-scrollbar-thumb { background: #c5c5c5; border-radius: 10px; }
+        
+        /* --- ESTILOS DE RESPUESTAS (HILOS) --- */
+        .replies-container {
+            margin-top: 0.5rem;
+            padding-left: 1rem;
+            border-left: 2px solid var(--color-borde-translucido);
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+        .reply-bubble {
+            background-color: rgba(0, 0, 0, 0.03);
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.7rem;
+            position: relative;
+        }
+        .reply-meta {
+            font-weight: 700;
+            color: var(--color-acento-celeste);
+            margin-bottom: 0.2rem;
+            display: flex;
+            justify-content: space-between;
+        }
+        .reply-text {
+            color: var(--color-texto-principal);
+            line-height: 1.2;
+        }
+        .btn-reply-action {
+            color: var(--color-acento-verde);
+            cursor: pointer;
+            margin-left: 0.5rem;
+        }
+
+        /* Dashboard y Buscador */
+        .dashboard-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: var(--color-superficie);
+            border: 1px solid var(--color-borde-translucido);
+            padding: 1.25rem;
+            border-radius: 0.75rem;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        .stat-value {
+            display: block;
+            font-size: 1.875rem;
+            font-weight: 800;
+            color: var(--color-acento-verde);
+            margin-bottom: 0.25rem;
+        }
+        .stat-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: var(--color-texto-secundario);
+            letter-spacing: 0.025em;
+        }
+
+        .search-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 450px;
+            margin-bottom: 1rem;
+        }
+        .search-input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.75rem;
+            border-radius: 9999px;
+            border: 1px solid var(--color-borde-translucido);
+            background: var(--color-superficie);
+            color: var(--color-texto-principal);
+            font-size: 0.875rem;
+            outline: none;
+        }
+        .search-icon-svg {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 1.25rem;
+            height: 1.25rem;
+            color: var(--color-texto-secundario);
+        }
+
+        .row-completado {
+            opacity: 0.6;
+        }
+
+        .icon { width: 1.25rem; height: 1.25rem; display: inline-block; vertical-align: middle; }
+
+        @media (max-width: 768px) {
+            .btn-text { display: none; }
+            .dashboard-stats { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+    <link rel="icon" type="image/png" href="Icono.png">
+</head>
+<body class="bg-fondo">
+
+    <!-- Pantalla de Login -->
+    <div id="login-overlay" class="login-overlay">
+        <div class="login-container card">
+            <h2 class="login-title">Iniciar Sesión</h2>
+            <div class="login-form">
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" id="login-email" class="form-input" value="raicesaconcagua545@gmail.com">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Clave</label>
+                    <input type="password" id="login-password" class="form-input" value="hotel545">
+                </div>
+                <p id="login-error" class="form-error hidden">Credenciales incorrectas.</p>
+                <button id="login-button" class="button button-primary button-full-width">Entrar</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="main-content" class="main-content hidden">
+        
+        <header class="main-header card" style="display:flex; justify-content: space-between; align-items: center; position: relative;">
+            <div style="display:flex; align-items: center;">
+                <img id="company-logo" src="logo1.png" alt="Logo" style="width: 48px; margin-right: 0.5rem; border-radius: 6px;" />
+                <h1 style="font-size: 1.5rem; margin: 0; color: var(--color-acento-verde);">Registro Diario</h1>
+                <div id="user-info" class="user-info-badge status-loading" style="margin-left: 1rem;">Cargando...</div>
+            </div>
+            <div class="header-buttons" style="display:flex; gap: 0.5rem;">
+                <button id="theme-toggle-btn" class="button-icon"><img id="theme-sun-icon" class="icon" src="sol.png" alt="Sol" /><img id="theme-moon-icon" class="icon" src="luna.png" alt="Luna" /></button>
+                <a href="checklist.html" target="_blank" class="button button-secondary" style="text-decoration:none; display:flex; align-items:center; gap:0.5rem;">
+                    <svg class="icon" viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a2 2 0 00-2 2v8a2 2 0 002 2h6a2 2 0 002-2V6.414A2 2 0 0016.586 5L13.5 1.914A2 2 0 0012.086 1.5H9z" /><path d="M11 2.5a.5.5 0 01.5-.5h.586a1 1 0 01.707.293l2.914 2.914a1 1 0 01.293.707V12a2 2 0 01-2 2H9a2 2 0 01-2-2V4a2 2 0 012-2h2v.5z" /></svg>
+                    <span class="btn-text">Check List</span>
+                </a>
+                <button id="logout-button" class="button button-secondary"><span class="btn-text">Cerrar Sesión</span></button>
+            </div>
+        </header>
+
+        <div class="dashboard-stats">
+            <div class="stat-card"><span id="stat-pending" class="stat-value" style="color: #A16207;">0</span><span class="stat-label">En curso</span></div>
+            <div class="stat-card"><span id="stat-urgent" class="stat-value" style="color: #DC2626;">0</span><span class="stat-label">Urgentes</span></div>
+            <div class="stat-card"><span id="stat-completed-today" class="stat-value" style="color: #059669;">0</span><span class="stat-label">Listas hoy</span></div>
+            <div class="stat-card"><span id="stat-total" class="stat-value">0</span><span class="stat-label">Total</span></div>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">Nueva Novedad</h2>
+            <form id="novedad-form" class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Prioridad</label>
+                    <select id="prioridad" name="prioridad" class="form-select">
+                        <option value="Urgente">Urgente</option>
+                        <option value="Alta">Alta</option>
+                        <option value="Media" selected>Media</option>
+                        <option value="Baja">Baja</option>
+                    </select>
+                </div>
+                <div class="form-group"><label class="form-label">Nº Reserva</label><input type="text" id="nReserva" name="nReserva" class="form-input"></div>
+                <div class="form-group"><label class="form-label">Habitación</label><input type="text" id="habitacion" name="habitacion" class="form-input"></div>
+                <div class="form-group"><label class="form-label">Área/Elemento</label><input type="text" id="areaElemento" name="areaElemento" required class="form-input"></div>
+                <div class="form-group relative">
+                    <label class="form-label">Notificar a</label>
+                    <button type="button" id="multiselect-button" class="multiselect-toggle"><span id="multiselect-label">Elige personal</span></button>
+                    <div id="multiselect-dropdown-container" class="multiselect-dropdown-container hidden">
+                        <div class="multiselect-search-container"><input type="text" id="multiselect-search" class="multiselect-search-input" placeholder="Buscar..."></div>
+                        <div id="multiselect-dropdown" class="multiselect-dropdown">
+                            <label class="multiselect-option-label"><input type="checkbox" id="multiselect-select-all"> <span>(Todo)</span></label>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Turno</label>
+                    <div id="current-shift" class="turno-display">--:--</div>
+                </div>
+                <div class="form-group form-group-full">
+                    <label class="form-label">Detalles</label>
+                    <textarea id="novedad" name="novedad" rows="2" required class="form-textarea"></textarea>
+                </div>
+                <div class="form-actions"><button type="submit" id="submit-button" class="button button-primary" disabled>Registrar</button></div>
+            </form>
+        </div>
+
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
+                <h2 class="card-title" style="border: none; margin: 0;">Novedades</h2>
+                <div class="search-wrapper">
+                    <svg class="search-icon-svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" /></svg>
+                    <input type="text" id="table-filter-input" class="search-input" placeholder="Filtrar por habitación, área o novedad...">
+                </div>
+            </div>
+            
+            <div class="table-actions">
+                <button id="whatsapp-copy-button" class="button button-green" disabled>Whatsapp (0)</button>
+                <button id="export-button" class="button button-orange" disabled>Exportar</button>
+                <button id="delete-all-btn" class="button button-danger-outline" disabled>Borrar Todo</button>
+            </div>
+
+            <div class="scrollable-table-container">
+                <table class="novedades-table">
+                    <thead>
+                        <tr>
+                            <th>Sel.</th><th>Turno</th><th>Fecha</th><th>Prioridad</th><th>Área</th><th>Reserva</th><th>Hab.</th><th>Novedad / Respuestas</th><th>Notificado</th><th>Estado</th><th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="novedades-log"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE RESPUESTA -->
+    <div id="reply-modal" class="modal-overlay hidden">
+        <div class="modal-container card" style="max-width: 30rem;">
+            <h3 class="modal-title">Responder / Actualizar Novedad</h3>
+            <p id="reply-original-text" style="font-size: 0.8rem; font-style: italic; color: var(--color-texto-secundario); margin-bottom: 1rem;"></p>
+            <form id="reply-form">
+                <input type="hidden" id="reply-novedad-id">
+                <div class="form-group">
+                    <label class="form-label">Tu Respuesta / Solución</label>
+                    <textarea id="reply-text-input" rows="3" required class="form-textarea" placeholder="Escribe aquí cómo se resolvió o una actualización..."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="cancel-reply-btn" class="button button-gray">Cancelar</button>
+                    <button type="submit" class="button button-primary">Enviar Respuesta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- OTROS MODALES (Edición, Confirmación, etc.) -->
+    <div id="edit-modal" class="modal-overlay hidden">
+        <div class="modal-container card" style="max-width: 38rem;">
+            <h3 class="modal-title">Editar Novedad</h3>
+            <form id="edit-novedad-form" class="form-grid">
+                <input type="hidden" id="edit-novedad-id">
+                <div class="form-group"><label>Prioridad</label><select id="editPrioridad" class="form-select"><option value="Urgente">Urgente</option><option value="Alta">Alta</option><option value="Media">Media</option><option value="Baja">Baja</option></select></div>
+                <div class="form-group"><label>Reserva</label><input type="text" id="editNReserva" class="form-input"></div>
+                <div class="form-group"><label>Habitación</label><input type="text" id="editHabitacion" class="form-input"></div>
+                <div class="form-group"><label>Área</label><input type="text" id="editAreaElemento" class="form-input"></div>
+                <div class="form-group"><label>Turno</label><div id="editCurrentShift" class="turno-display" style="width:100%">--:--</div></div>
+                <div class="form-group relative" style="grid-column: span 3 / span 3;">
+                    <label>Notificado a</label>
+                    <button type="button" id="edit-multiselect-button" class="multiselect-toggle"><span id="edit-multiselect-label">Elige personal</span></button>
+                    <div id="edit-multiselect-dropdown-container" class="multiselect-dropdown-container hidden">
+                        <div id="edit-multiselect-dropdown" class="multiselect-dropdown"></div>
+                    </div>
+                </div>
+                <div class="form-group form-group-full"><label>Detalles</label><textarea id="editNovedad" rows="3" class="form-textarea"></textarea></div>
+                <div class="modal-actions"><button type="button" id="cancel-edit-btn" class="button button-gray">Cancelar</button><button type="submit" class="button button-primary">Guardar</button></div>
+            </form>
+        </div>
+    </div>
+
+    <div id="confirm-modal" class="modal-overlay hidden">
+        <div class="modal-container card">
+            <h3>¿Eliminar registro?</h3>
+            <div class="modal-actions"><button id="cancel-delete-btn" class="button button-gray">No</button><button id="confirm-delete-btn" class="button button-danger">Sí, borrar</button></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, collection, query, orderBy, serverTimestamp, updateDoc, addDoc, deleteDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+
+        const isCanvas = typeof __app_id !== 'undefined';
+        const appId = isCanvas ? __app_id : 'hotel-prod-545';
+        const firebaseConfig = isCanvas ? JSON.parse(__firebase_config) : {
+            apiKey: "AIzaSyBvzV9DTb0VbpgVaymzTa-MYtfXDkdiW_g",
+            authDomain: "hotel-manager-system.firebaseapp.com",
+            projectId: "hotel-manager-system",
+            storageBucket: "hotel-manager-system.appspot.com",
+            messagingSenderId: "963620457167",
+            appId: "1:963620457167:web:f39693f502e7b75cb745ba"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const COLLECTION = isCanvas ? `artifacts/${appId}/public/data/hotel_log` : 'hotel_log';
+
+        let userId = null, userEmail = null, allLogs = [], selectedIds = new Set();
+        const multiselectOptions = ['Mantenimiento', 'HSKP', 'ReservasHA', 'ReservasHE', 'Front', 'Jefe Recepción', 'Seguridad', 'Parking', 'A.Públicas', 'Piscina', 'GerenciaO', 'GerenciaD'];
+
+        // --- DASHBOARD ---
+        function updateDashboard(logs) {
+            const pending = logs.filter(l => l.estado !== 'Completado').length;
+            const urgent = logs.filter(l => l.prioridad === 'Urgente' && l.estado !== 'Completado').length;
+            const today = new Date().toLocaleDateString();
+            const doneToday = logs.filter(l => l.estado === 'Completado' && l.completadoEn?.toDate().toLocaleDateString() === today).length;
+            document.getElementById('stat-pending').textContent = pending;
+            document.getElementById('stat-urgent').textContent = urgent;
+            document.getElementById('stat-completed-today').textContent = doneToday;
+            document.getElementById('stat-total').textContent = logs.length;
+        }
+
+        // --- RENDERIZADO CON HILOS ---
+        function renderLogs(filter = '') {
+            const tbody = document.getElementById('novedades-log');
+            tbody.innerHTML = '';
+            const term = filter.toLowerCase();
+
+            const filtered = allLogs.filter(l => 
+                (l.habitacion || '').toLowerCase().includes(term) ||
+                (l.areaElemento || '').toLowerCase().includes(term) ||
+                (l.novedad || '').toLowerCase().includes(term)
+            );
+
+            filtered.forEach(log => {
+                const ts = log.timestamp?.toDate() || new Date();
+                const isDone = log.estado === 'Completado';
+                const row = document.createElement('tr');
+                row.className = `novedad-row ${isDone ? 'row-completado' : ''}`;
+                
+                // Construir HTML de respuestas
+                let repliesHtml = '';
+                if (log.replies && log.replies.length > 0) {
+                    repliesHtml = `<div class="replies-container">`;
+                    log.replies.forEach(r => {
+                        repliesHtml += `
+                            <div class="reply-bubble">
+                                <div class="reply-meta">
+                                    <span>${r.user.split('@')[0]} (${r.turno})</span>
+                                    <span>${r.time}</span>
+                                </div>
+                                <div class="reply-text">${r.text}</div>
+                            </div>
+                        `;
+                    });
+                    repliesHtml += `</div>`;
+                }
+
+                row.innerHTML = `
+                    <td><input type="checkbox" class="novedad-checkbox" data-id="${log.id}" ${selectedIds.has(log.id) ? 'checked' : ''}></td>
+                    <td>${log.turno || ''}</td>
+                    <td>${ts.toLocaleDateString()}<br><small>${ts.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</small></td>
+                    <td><span class="badge badge-${log.prioridad?.toLowerCase()}">${log.prioridad}</span></td>
+                    <td>${log.areaElemento}</td>
+                    <td>${log.nReserva || '-'}</td>
+                    <td><strong>${log.habitacion || '-'}</strong></td>
+                    <td style="max-width: 400px;">
+                        <div style="font-weight: 500;">${log.novedad}</div>
+                        ${repliesHtml}
+                    </td>
+                    <td><small>${log.notificadoA || '-'}</small></td>
+                    <td>
+                        <select class="estado-select status-${isDone ? 'completado' : 'encurso'}" data-id="${log.id}">
+                            <option value="En curso" ${!isDone ? 'selected' : ''}>En curso</option>
+                            <option value="Completado" ${isDone ? 'selected' : ''}>Completado</option>
+                        </select>
+                    </td>
+                    <td style="white-space: nowrap;">
+                        <button class="button-icon btn-reply" data-id="${log.id}" title="Responder" style="color: var(--color-acento-celeste);">
+                            <svg class="icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.707 3.293a1 1 0 010 1.414L5.414 7H11a7 7 0 017 7v2a1 1 0 11-2 0v-2a5 5 0 00-5-5H5.414l2.293 2.293a1 1 0 11-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                        </button>
+                        <button class="button-icon btn-edit" data-id="${log.id}" title="Editar">✎</button>
+                        <button class="button-icon btn-del" data-id="${log.id}" title="Borrar" style="color:red">✕</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            updateControls();
+        }
+
+        document.getElementById('table-filter-input').addEventListener('input', (e) => renderLogs(e.target.value));
+
+        // --- LÓGICA DE RESPUESTAS ---
+        function openReplyModal(log) {
+            document.getElementById('reply-novedad-id').value = log.id;
+            document.getElementById('reply-original-text').textContent = `"${log.novedad}"`;
+            document.getElementById('reply-text-input').value = '';
+            document.getElementById('reply-modal').classList.remove('hidden');
+        }
+
+        document.getElementById('reply-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('reply-novedad-id').value;
+            const text = document.getElementById('reply-text-input').value;
+            const now = new Date();
+            const timeStr = now.toLocaleDateString() + ' ' + now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+
+            const newReply = {
+                text: text,
+                user: userEmail,
+                turno: calcularTurno(),
+                time: timeStr,
+                timestamp: Date.now()
+            };
+
+            await updateDoc(doc(db, COLLECTION, id), {
+                replies: arrayUnion(newReply)
+            });
+
+            document.getElementById('reply-modal').classList.add('hidden');
+        };
+
+        document.getElementById('cancel-reply-btn').onclick = () => document.getElementById('reply-modal').classList.add('hidden');
+
+        // --- EVENTOS TABLA ---
+        document.getElementById('novedades-log').addEventListener('click', (e) => {
+            const btn = e.target.closest('button');
+            if (!btn) return;
+            const id = btn.dataset.id;
+            const log = allLogs.find(l => l.id === id);
+
+            if (btn.classList.contains('btn-reply')) openReplyModal(log);
+            if (btn.classList.contains('btn-edit')) openEditModal(log);
+            if (btn.classList.contains('btn-del')) {
+                document.getElementById('confirm-delete-btn').dataset.id = id;
+                document.getElementById('confirm-modal').classList.remove('hidden');
+            }
+        });
+
+        document.getElementById('novedades-log').addEventListener('change', async (e) => {
+            const id = e.target.dataset.id;
+            if (e.target.classList.contains('estado-select')) {
+                const update = { estado: e.target.value };
+                if (e.target.value === 'Completado') {
+                    update.completadoEn = serverTimestamp();
+                    update.completadoPor = userEmail;
+                }
+                await updateDoc(doc(db, COLLECTION, id), update);
+            }
+            if (e.target.classList.contains('novedad-checkbox')) {
+                e.target.checked ? selectedIds.add(id) : selectedIds.delete(id);
+                updateControls();
+            }
+        });
+
+        // --- FIREBASE SYNC ---
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                userId = user.uid; userEmail = user.email;
+                document.getElementById('login-overlay').classList.add('hidden');
+                document.getElementById('main-content').classList.remove('hidden');
+                document.getElementById('user-info').textContent = 'Online';
+                document.getElementById('user-info').className = 'user-info-badge status-connected';
+                document.getElementById('submit-button').disabled = false;
+                initApp();
+                const q = query(collection(db, COLLECTION), orderBy('timestamp', 'desc'));
+                onSnapshot(q, (snap) => {
+                    allLogs = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                    updateDashboard(allLogs);
+                    renderLogs(document.getElementById('table-filter-input').value);
+                });
+            } else {
+                document.getElementById('login-overlay').classList.remove('hidden');
+            }
+        });
+
+        // --- UTILIDADES ---
+        function calcularTurno() {
+            const h = new Date().getHours();
+            const t = h * 60 + new Date().getMinutes();
+            if (t >= 390 && t <= 870) return 'Mañana';
+            if (t >= 871 && t <= 1350) return 'Tarde';
+            return 'Noche';
+        }
+
+        function updateControls() {
+            document.getElementById('whatsapp-copy-button').textContent = `Whatsapp (${selectedIds.size})`;
+            document.getElementById('whatsapp-copy-button').disabled = selectedIds.size === 0;
+            document.getElementById('export-button').disabled = allLogs.length === 0;
+            document.getElementById('delete-all-btn').disabled = allLogs.length === 0;
+        }
+
+        function initApp() {
+            document.getElementById('current-shift').textContent = calcularTurno();
+            const theme = localStorage.getItem('theme') || 'dark';
+            document.getElementById('theme-stylesheet').href = `${theme}.css`;
+            populateMultiselect('multiselect-dropdown', '');
+            populateMultiselect('edit-multiselect-dropdown', 'edit-');
+        }
+
+        function populateMultiselect(containerId, prefix) {
+            const container = document.getElementById(containerId);
+            multiselectOptions.forEach(opt => {
+                const label = document.createElement('label');
+                label.className = 'multiselect-option-label';
+                label.innerHTML = `<input type="checkbox" class="${prefix}multiselect-option" value="${opt}"> <span>${opt}</span>`;
+                container.appendChild(label);
+            });
+        }
+
+        document.getElementById('novedad-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const f = new FormData(e.target);
+            const notifs = Array.from(document.querySelectorAll('.multiselect-option:checked')).map(cb => cb.value).join(', ');
+            await addDoc(collection(db, COLLECTION), {
+                prioridad: f.get('prioridad'),
+                nReserva: f.get('nReserva'),
+                habitacion: f.get('habitacion'),
+                areaElemento: f.get('areaElemento'),
+                novedad: f.get('novedad'),
+                notificadoA: notifs,
+                turno: calcularTurno(),
+                timestamp: serverTimestamp(),
+                userEmail, estado: 'En curso', replies: []
+            });
+            e.target.reset();
+        };
+
+        document.getElementById('theme-toggle-btn').onclick = () => {
+            const current = localStorage.getItem('theme') === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('theme', current);
+            document.getElementById('theme-stylesheet').href = `${current}.css`;
+        };
+
+        document.getElementById('login-button').onclick = async () => {
+            try { await signInWithEmailAndPassword(auth, document.getElementById('login-email').value, document.getElementById('login-password').value); }
+            catch(e) { document.getElementById('login-error').classList.remove('hidden'); }
+        };
+        document.getElementById('logout-button').onclick = () => signOut(auth);
+        document.getElementById('confirm-delete-btn').onclick = async (e) => {
+            await deleteDoc(doc(db, COLLECTION, e.target.dataset.id));
+            document.getElementById('confirm-modal').classList.add('hidden');
+        };
+        document.getElementById('cancel-delete-btn').onclick = () => document.getElementById('confirm-modal').classList.add('hidden');
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,475 @@
+/* =====================================================================
+   responsive.css — capa responsive compartida por dark.css y light.css
+   Se carga DESPUÉS del tema (ver index.html), así que el cambio de tema
+   no la afecta. Enfoque mobile-first: lo base es para celular y los
+   @media (min-width) agregan comodidades en pantallas más grandes.
+
+   Breakpoints usados:
+     480px  celular grande      768px  tablet
+     900px  panel superior      1024px tabla -> tarjetas (igual que el JS)
+     1200px título centrado     1800px pantallas muy anchas
+   ===================================================================== */
+
+/* ---------- Base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+img, svg, video { max-width: 100%; }
+img { height: auto; }
+.icon { height: 1.25rem; } /* los iconos <img> mantienen su tamaño fijo */
+
+body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden; /* red de seguridad: nunca scroll horizontal de página */
+    padding: 0.75rem;
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+    padding-top: max(0.75rem, env(safe-area-inset-top));
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+/* Evita que se pueda scrollear la página de fondo con un modal abierto */
+body:has(.modal-overlay:not(.hidden)) { overflow: hidden; }
+
+.novedades-table .cell-novedad,
+.novedades-table .cell-notificado,
+.novedades-table .cell-area {
+    overflow-wrap: break-word; /* corta palabras largas sin alterar el ancho de columnas */
+}
+.comment-text,
+.modal-content,
+#mobile-detail-content,
+#alarm-trigger-message {
+    overflow-wrap: anywhere;
+}
+
+/* Tarjetas: menos aire en celular */
+.card { padding: 1rem; margin-bottom: 1.25rem; }
+
+/* ---------- Encabezado ---------- */
+.main-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1rem;
+    margin-bottom: 1.25rem;
+    position: relative;
+}
+
+.header-left {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.main-title {
+    position: static;
+    transform: none;
+    margin: 0;
+    width: auto;
+    font-size: clamp(1.25rem, 0.9rem + 1.6vw, 2.25rem);
+    line-height: 1.15;
+}
+
+.header-actions-container {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    margin-left: 0 !important;
+}
+
+.header-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Los temas fijan 153.83px x 42.78px en el botón de salir: lo liberamos */
+#logout-button {
+    width: auto !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 42px;
+    padding: 0.5rem 1rem !important;
+}
+#theme-toggle-btn { flex: 0 0 auto; }
+
+/* Celular: "Cerrar Sesión" queda solo con icono para que los 3 botones entren en una fila */
+@media (max-width: 400px) {
+    #logout-button .btn-text { display: none; }
+    #logout-button { padding: 0.5rem 0.75rem !important; }
+    #logout-button .icon, #logout-button svg { margin-right: 0; }
+}
+/* Muy angosto (320px): también "Check List" */
+@media (max-width: 340px) {
+    .header-buttons .btn-text { display: none; }
+    .header-buttons .button .icon, .header-buttons .button svg { margin-right: 0; }
+}
+
+@media (min-width: 640px) {
+    .header-actions-container { flex: 0 0 auto; margin-left: 1rem !important; }
+}
+
+/* Título realmente centrado solo cuando hay lugar de sobra */
+@media (min-width: 1200px) {
+    .main-title {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 5;
+    }
+}
+
+/* ---------- Panel superior (filtros + botón Agregar) ---------- */
+.top-dashboard-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    align-items: stretch;
+}
+@media (min-width: 900px) {
+    .top-dashboard-grid { grid-template-columns: minmax(0, 1fr) 260px; gap: 1.5rem; }
+}
+
+.btn-massive-add { min-height: 64px; }
+@media (max-width: 899px) {
+    .btn-massive-add { flex-direction: row; padding: 1rem; }
+    .btn-massive-add svg { width: 2rem; height: 2rem; }
+}
+
+/* min(130px,100%) evita que una columna fuerce desborde en 320px */
+.form-grid[style*="auto-fit"] {
+    grid-template-columns: repeat(auto-fit, minmax(min(130px, 100%), 1fr)) !important;
+}
+.form-grid > * { min-width: 0; }
+
+/* Formularios: 2 columnas en tablets chicas, 3 desde 768 (lo define el tema) */
+@media (min-width: 520px) and (max-width: 767px) {
+    .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .form-group-full { grid-column: 1 / -1; }
+}
+@media (max-width: 767px) {
+    .turno-display { width: 100%; }
+}
+
+/* ---------- Acciones sobre la tabla ---------- */
+.table-actions { align-items: stretch; }
+.table-buttons-container { flex-wrap: wrap; width: 100%; }
+@media (max-width: 639px) {
+    .table-buttons-container .button { width: 100%; }
+}
+@media (min-width: 640px) {
+    .table-buttons-container { width: auto; }
+}
+
+/* ---------- Tabla (escritorio) ---------- */
+/* Los anchos de columna del tema están pensados con content-box */
+.novedades-table th,
+.novedades-table td { box-sizing: content-box; }
+.novedades-table .cell-fecha { white-space: nowrap; }
+
+.scrollable-table-container {
+    max-width: 100%;
+    max-height: 70vh;
+    max-height: 70dvh;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ---------- Tabla -> tarjetas (<= 1024px, igual que el JS) ---------- */
+@media (max-width: 1024px) {
+    .scrollable-table-container {
+        overflow: visible !important;
+        max-height: none;
+        border: 0;
+        border-radius: 0;
+    }
+    /* El tema pone min-width:1200px; en móvil dejaba la fila cortada */
+    .novedades-table { min-width: 0 !important; width: 100%; }
+    .novedades-table,
+    .novedades-table tbody { display: block; width: 100%; }
+    .novedades-table thead { display: none; }
+
+    .novedad-row {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        grid-template-areas:
+            "chk text arrow"
+            "chk meta arrow";
+        column-gap: 0.75rem;
+        row-gap: 0.4rem;
+        align-items: start;
+        width: 100%;
+        margin-bottom: 0.75rem;
+        padding: 0.9rem 1rem;
+        border-radius: 8px;
+        background-color: rgba(128, 128, 128, 0.05);
+        border: 1px solid rgba(128, 128, 128, 0.2);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    .novedad-row:active { background-color: rgba(128, 128, 128, 0.15); }
+
+    .novedad-row td {
+        display: none !important;
+        width: auto !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        padding: 0;
+        border: 0;
+        white-space: normal !important;
+    }
+    .novedad-row td.cell-checkbox {
+        display: flex !important;
+        grid-area: chk;
+        align-items: center;
+        justify-content: center;
+        min-width: 28px !important;
+        min-height: 28px;
+    }
+    .novedad-row td.cell-novedad {
+        display: -webkit-box !important;
+        grid-area: text;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-align: left;
+        font-weight: 500;
+        font-size: 0.95rem;
+        line-height: 1.4;
+        box-shadow: none;
+    }
+    .novedad-row td.cell-prioridad {
+        display: block !important;
+        grid-area: meta;
+        justify-self: start;
+    }
+    .novedad-row::after {
+        content: '▶';
+        grid-area: arrow;
+        align-self: center;
+        font-size: 0.8rem;
+        color: var(--color-texto-secundario);
+        opacity: 0.5;
+    }
+}
+
+/* ---------- Paginación ---------- */
+.pagination-container { gap: 0.5rem 0.75rem; }
+@media (max-width: 480px) {
+    .page-info { order: -1; flex: 1 1 100%; text-align: center; margin: 0; }
+    .page-btn { flex: 1 1 40%; }
+}
+
+/* ---------- Modales ---------- */
+.modal-overlay {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right))
+             max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+}
+
+/* El .card trae margin-bottom:2.5rem y descentraba los modales */
+.modal-container,
+.login-container {
+    width: 100%;
+    margin: auto;
+    max-height: calc(100vh - 2rem);
+    max-height: calc(100dvh - 2rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.login-overlay { overflow-y: auto; }
+
+#comments-list { max-height: min(300px, 35vh) !important; max-height: min(300px, 35dvh) !important; }
+#active-alarms-list { max-height: min(200px, 30vh) !important; max-height: min(200px, 30dvh) !important; }
+
+.modal-actions,
+.form-actions { flex-wrap: wrap; }
+
+@media (max-width: 480px) {
+    .modal-container, .login-container { padding: 1.1rem; }
+    .modal-actions .button,
+    .form-actions .button { flex: 1 1 140px; }
+    #alarm-trigger-modal h2 { font-size: 1.4rem !important; }
+    #alarm-trigger-message { font-size: 1.05rem !important; margin-bottom: 1.25rem !important; }
+}
+
+/* Celular en horizontal: poca altura */
+@media (max-height: 500px) and (orientation: landscape) {
+    .modal-container, .login-container { padding: 1rem; }
+    .modal-actions { margin-top: 0.75rem; }
+    .modal-title { margin-bottom: 0.5rem; }
+}
+
+/* ---------- Campos: 16px evita el zoom automático de iOS ---------- */
+@media (max-width: 768px) {
+    .form-input, .form-select, .form-textarea, .multiselect-toggle,
+    .multiselect-search-input, .modal-password-input {
+        font-size: 16px !important;
+    }
+}
+
+/* ---------- Pantallas táctiles: objetivos de toque cómodos ---------- */
+@media (pointer: coarse) {
+    .button, .button-icon, .page-btn, .multiselect-toggle,
+    .form-input, .form-select { min-height: 44px; }
+    .button-icon { min-width: 44px; }
+    #open-reminder-modal-btn, .user-info-badge { min-height: 40px !important; }
+    input[type="checkbox"] { width: 1.25rem; height: 1.25rem; }
+    .multiselect-option-label { padding: 0.5rem; }
+    .estado-select { min-height: 36px; }
+}
+
+/* ---------- Pantallas muy anchas ---------- */
+@media (min-width: 1800px) {
+    .main-content { max-width: 1680px; }
+}
+@media (min-width: 768px) {
+    body { padding: 2rem; }
+    .card { padding: 1.5rem; margin-bottom: 2rem; }
+    .main-header { margin-bottom: 1.5rem; }
+}
+
+/* ---------- Accesibilidad ---------- */
+:focus-visible { outline: 2px solid #FA780C; outline-offset: 2px; }
+.form-input:focus-visible, .form-select:focus-visible, .form-textarea:focus-visible { outline-offset: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    .loading-spinner { animation-duration: 1s !important; animation-iteration-count: infinite !important; }
+}
+
+/* ---------- Logo ----------
+   Cada tema usa su propio archivo (logo1.png en claro, logo2.png en oscuro);
+   se cambia desde el script del tema en index.html, así que ya no se invierte con filtros. */
+
+/* =====================================================================
+   Calendario de los campos de fecha (visible en tema claro y oscuro)
+   ---------------------------------------------------------------------
+   El icono nativo del calendario usa el esquema de color del navegador.
+   Sin esto seguía el del sistema operativo: con el sistema en modo oscuro
+   el icono salía blanco sobre el fondo blanco del tema claro y no se veía.
+   ===================================================================== */
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
+
+input[type="date"] { cursor: pointer; }
+input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.85;
+    padding: 2px;
+    border-radius: 4px;
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+    background: rgba(128, 128, 128, 0.2);
+}
+
+/* =====================================================================
+   Resumen rápido (clickeable)
+   ===================================================================== */
+.summary-bar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
+    margin-bottom: 1.25rem;
+}
+@media (min-width: 640px) {
+    .summary-bar { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+.summary-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    min-height: 48px;
+    padding: 0.6rem 0.8rem;
+    border-radius: 10px;
+    border: 1px solid rgba(128, 128, 128, 0.3);
+    background: rgba(128, 128, 128, 0.07);
+    color: var(--color-texto-principal);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+.summary-chip:hover { background: rgba(128, 128, 128, 0.14); }
+.summary-count { font-size: 1.5rem; font-weight: 800; line-height: 1; min-width: 1.6ch; }
+.summary-label { font-size: 0.8rem; font-weight: 600; line-height: 1.2; opacity: 0.9; }
+.summary-chip.danger.has-items { border-color: #ef4444; }
+.summary-chip.danger.has-items .summary-count { color: #ef4444; }
+.summary-chip.warn.has-items { border-color: #f59e0b; }
+.summary-chip.warn.has-items .summary-count { color: #d97706; }
+:root[data-theme="dark"] .summary-chip.warn.has-items .summary-count { color: #fbbf24; }
+.summary-chip.is-active {
+    box-shadow: inset 0 0 0 2px #FA780C;
+    background: rgba(250, 120, 12, 0.12);
+}
+
+/* =====================================================================
+   Novedades atrasadas (En curso por más tiempo del permitido)
+   ===================================================================== */
+.badge-age {
+    display: inline-block;
+    margin: 0.25rem 0 0 0.35rem;
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    white-space: nowrap;
+    color: #b45309;
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.5);
+}
+:root[data-theme="dark"] .badge-age { color: #fbbf24; }
+.novedad-row.row-stale > td:first-child { box-shadow: inset 4px 0 0 #f59e0b; }
+@media (max-width: 1024px) {
+    .novedad-row.row-stale > td:first-child { box-shadow: none; }
+    .novedad-row.row-stale { border-left: 4px solid #f59e0b; }
+}
+
+/* =====================================================================
+   Aviso de borrador recuperado
+   ===================================================================== */
+.draft-notice {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: var(--color-texto-principal);
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.5);
+}
+.draft-notice.hidden { display: none; }
+.draft-notice button {
+    background: none;
+    border: 0;
+    padding: 0.25rem;
+    font: inherit;
+    color: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+}

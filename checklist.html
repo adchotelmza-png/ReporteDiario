@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Check List Diario Front</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Librería para generar Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        /* Estilos generales de la interfaz */
+        .line-through-text {
+            text-decoration: line-through;
+            color: #9ca3af;
+        }
+
+        .check-mark {
+            color: #2563eb;
+            font-size: 1.5rem;
+            line-height: 2rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-2 sm:p-4 md:p-8 font-sans text-gray-800 overflow-x-hidden">
+
+    <div class="max-w-5xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
+        
+        <!-- Encabezado -->
+        <div class="bg-slate-800 text-white p-4 md:p-6 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3 md:gap-4">
+            <div class="flex items-center justify-center md:justify-start gap-3 min-w-0">
+                <i data-lucide="clipboard-list" class="w-7 h-7 md:w-8 md:h-8 shrink-0 text-blue-400"></i>
+                <h1 id="main-title" class="text-lg sm:text-2xl font-bold uppercase tracking-wide sm:tracking-wider break-words">Check List Cajero</h1>
+            </div>
+            
+            <div class="flex w-full md:w-auto bg-slate-700 rounded-lg p-1" role="group" aria-label="Rol">
+                <button id="tab-cajero" onclick="switchTab('cajero')" class="flex-1 md:flex-none px-3 sm:px-6 py-2.5 md:py-2 text-sm sm:text-base rounded-md transition-all font-semibold bg-blue-600 text-white">
+                    CAJERO
+                </button>
+                <button id="tab-recepcionista" onclick="switchTab('recepcionista')" class="flex-1 md:flex-none px-3 sm:px-6 py-2.5 md:py-2 text-sm sm:text-base rounded-md transition-all font-semibold text-gray-300 hover:text-white">
+                    RECEPCIONISTA
+                </button>
+            </div>
+        </div>
+
+        <!-- Formulario de Datos (Independientes por pestaña) -->
+        <div class="p-4 md:p-6 bg-gray-50 border-b border-gray-200">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+                <div class="flex flex-col gap-1 min-w-0">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Nombre del Colaborador</label>
+                    <input type="text" id="input-nombre" oninput="updateCurrentData()" placeholder="Nombre completo" class="w-full min-w-0 p-2 border-b-2 border-gray-300 bg-transparent focus:border-blue-500 outline-none font-medium">
+                </div>
+                <div class="flex flex-col gap-1 min-w-0">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Fecha del Turno</label>
+                    <input type="date" id="input-fecha" oninput="updateCurrentData()" class="w-full min-w-0 p-2 border-b-2 border-gray-300 bg-transparent focus:border-blue-500 outline-none font-medium">
+                </div>
+                <div class="flex flex-col gap-1 min-w-0">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Turno</label>
+                    <select id="input-turno" onchange="updateCurrentData()" class="w-full min-w-0 p-2 border-b-2 border-gray-300 bg-transparent focus:border-blue-500 outline-none font-medium cursor-pointer">
+                        <option value="Mañana">Mañana</option>
+                        <option value="Tarde">Tarde</option>
+                        <option value="Noche">Noche</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla -->
+        <div class="overflow-x-auto">
+            <table id="checklist-table" class="w-full border-collapse">
+                <thead>
+                    <tr class="bg-gray-100 text-left text-xs uppercase font-bold text-gray-600">
+                        <th class="p-2 sm:p-4 border-b border-gray-300 w-10 sm:w-12 text-center">Nº</th>
+                        <th class="p-2 sm:p-4 border-b border-gray-300">Tareas del Turno</th>
+                        <th class="hidden sm:table-cell p-4 border-b border-gray-300 text-center w-24">Alta</th>
+                        <th class="hidden sm:table-cell p-4 border-b border-gray-300 text-center w-24">Baja</th>
+                        <th class="p-2 sm:p-4 border-b border-gray-300 text-center w-14 sm:w-20">Check</th>
+                    </tr>
+                </thead>
+                <tbody id="checklist-body">
+                    <!-- Filas dinámicas -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Footer / Acciones -->
+        <div class="p-4 md:p-6 bg-gray-50 border-t border-gray-200 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 text-center md:text-left">
+            <div class="text-xs font-bold text-gray-400 uppercase">
+                <p id="footer-status">ESTADO: 0 TAREAS COMPLETADAS</p>
+                <p>Cada pestaña mantiene sus propios datos de usuario y tareas.</p>
+            </div>
+            
+            <button onclick="exportarAExcel()" class="w-full md:w-auto justify-center bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-full font-bold flex items-center gap-2 shadow-lg transition-transform active:scale-95">
+                <i data-lucide="file-spreadsheet" class="w-5 h-5"></i>
+                DESCARGAR EXCEL
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const dataCajero = [
+            { n: 1, tarea: "Control de fondo fijo y firma de rendición de cajero saliente", alta: 10, baja: 10 },
+            { n: 2, tarea: "Repaso de novedades generales y notificación en el registro diario app", alta: 5, baja: 5 },
+            { n: 3, tarea: "Revisión de salidas del día", alta: 15, baja: 10 },
+            { n: 4, tarea: "Revisión de ingresos del día", alta: 15, baja: 15 },
+            { n: 5, tarea: "Repaso de novedades en grupos whatsapp (info, mantenim, Front etc.)", alta: 5, baja: 5 },
+            { n: 6, tarea: "Asignar tareas al recepcionista (extra, colaborador)", alta: 5, baja: 5 },
+            { n: 7, tarea: "Envio de reportes a los sectores correspondientes (gym, piscina, parking) etc", alta: 5, baja: 5 },
+            { n: 8, tarea: "Enviar reporte in house, llegadas, salidas y open balance al grupo whatsapp de Reportes.", alta: 5, baja: 5 },
+            { n: 9, tarea: "Checkear tarifas web del dia, disponibilidad de la semana, y promociones vigentes.", alta: 10, baja: 10 },
+            { n: 10, tarea: "Control de reporte de grupos (verificar datos cargados, horarios y dia de llegada, etc)", alta: 10, baja: 10 },
+            { n: 11, tarea: "Revisión de novedades de auditoria y folios pendientes.", alta: 10, baja: 10 },
+            { n: 12, tarea: "Check out de habitación virtuales", alta: 5, baja: 5 },
+            { n: 13, tarea: "Presentar Informes de frigobares no reconocidos del turno al jefe de recepción y firma", alta: 5, baja: 5 },
+            { n: 14, tarea: "Responder emails", alta: 30, baja: 30 },
+            { n: 15, tarea: "Presentar informe de planilla de créditos y ajustes al jefe de recepción. Informe de default", alta: 10, baja: 10 },
+            { n: 16, tarea: "Dejar suficiente cambio en fondo fijo al turno siguiente", alta: 5, baja: 5 },
+            { n: 17, tarea: "Cerrar folios pendientes generados durante el turno. En caso de no poder hacerlo, anotar y reportar en Front.", alta: 20, baja: 15 },
+            { n: 18, tarea: "Chequeo de llaves onity en conjunto con recepcionista (verificar que se corresponda con los IN en Arion)", alta: 15, baja: 10 },
+            { n: 19, tarea: "Asignar habitaciones de los dias siguientes", alta: 15, baja: 10 },
+            { n: 20, tarea: "Notificar al turno siguiente del estado de las salidas pendientes", alta: 5, baja: 5 },
+            { n: 21, tarea: "INFORMAR AL JEFE DE RECEPCION DEL MOMENTO PARA BRIEFING", alta: 5, baja: 5 },
+            { n: 22, tarea: "Reportar novedades en Front", alta: 10, baja: 5 },
+            { n: 23, tarea: "Cobro de parking pendientes", alta: 15, baja: 10 },
+            { n: 24, tarea: "Cierre de cajero y cierre posnet", alta: "-", baja: "-" }
+        ];
+
+        const dataRecepcionista = [
+            { n: 1, tarea: "Repaso de novedades generales y notificación en el registro diario app", alta: 5, baja: 5 },
+            { n: 2, tarea: "Chequeo de grupos whatsapp (info, mantenimiento, front, etc)", alta: 5, baja: 5 },
+            { n: 3, tarea: "Chequeo de planilla de despiertes y programación telefónica, Reserva de remises solicitados por los huéspedes", alta: 5, baja: 5 },
+            { n: 4, tarea: "Revisión de FreshMarket y control del orden y limpieza el sector, checkeo rapido estado de baños. Reportar a Áreas públicas de ser necesario.", alta: 10, baja: 10 },
+            { n: 5, tarea: "Chequeo de llegadas del día, pedidos especiales y asignación de habitaciones.", alta: 20, baja: 15 },
+            { n: 6, tarea: "Impresión de mapas, cartas de bienvenida, etc.", alta: 15, baja: 10 },
+            { n: 7, tarea: "Controlar estado de posnet (carga bateria, carga papel, etc)", alta: 5, baja: 5 },
+            { n: 8, tarea: "Controlar carga de telefono y conexión a la red Wifi del hotel", alta: 4, baja: 3 },
+            { n: 9, tarea: "Revisión de novedades de auditoria y folios pendientes.", alta: 10, baja: 10 },
+            { n: 10, tarea: "Preparar los elementos de trabajo y operación: Tarjetas/llaves, porta llaves, colocar hojas en impresora, etc.", alta: 15, baja: 15 },
+            { n: 11, tarea: "Revisión de reservas individuales y de grupos futuras. ", alta: 10, baja: 10 },
+            { n: 12, tarea: "Reporte a housekeeping de las prioridades del día (early check in, LCO, etc)", alta: 10, baja: 5 },
+            { n: 13, tarea: "Reporte a AA&BB de los Early Check IN.", alta: 5, baja: 5 },
+            { n: 14, tarea: "Realizar el check list del area (stock de elementos)", alta: 15, baja: 10 },
+            { n: 15, tarea: "Chequeo de reservas con back up contra sistema: In-Out, tarifas, comentarios, formas de pago. Reporte de anomalías a reservas", alta: 20, baja: 15 },
+            { n: 16, tarea: "Chequeo y cuadre de llaves onity con Arion. entre las 13:00 y 14hs", alta: 15, baja: 10 },
+            { n: 17, tarea: "Chequeo de mensajes, sobres o elementos a entregar a huéspedes. Reportar en grupo Front", alta: 5, baja: 5 },
+            { n: 18, tarea: "Reporte de novedades.", alta: 5, baja: 5 },
+            { n: 19, tarea: "Checkero de whatsapp pendientes", alta: 5, baja: 5 },
+            { n: 20, tarea: "Control de totalidad de datos cargados en perfiles del Arion", alta: 15, baja: 10 }
+        ];
+
+        // Estado independiente para cada rol
+        let activeTab = 'cajero';
+        const states = {
+            cajero: {
+                nombre: '',
+                fecha: new Date().toISOString().split('T')[0],
+                turno: 'Mañana',
+                checks: {}
+            },
+            recepcionista: {
+                nombre: '',
+                fecha: new Date().toISOString().split('T')[0],
+                turno: 'Mañana',
+                checks: {}
+            }
+        };
+
+        // Clases de las pestañas (mismas que en el HTML, para que no cambien de tamaño al alternar)
+        const TAB_ON = 'flex-1 md:flex-none px-3 sm:px-6 py-2.5 md:py-2 text-sm sm:text-base rounded-md transition-all font-semibold bg-blue-600 text-white';
+        const TAB_OFF = 'flex-1 md:flex-none px-3 sm:px-6 py-2.5 md:py-2 text-sm sm:text-base rounded-md transition-all font-semibold text-gray-300 hover:text-white';
+
+        function switchTab(newTab) {
+            updateCurrentData();
+            activeTab = newTab;
+            
+            const btnCajero = document.getElementById('tab-cajero');
+            const btnRecepcionista = document.getElementById('tab-recepcionista');
+            const mainTitle = document.getElementById('main-title');
+
+            if (newTab === 'cajero') {
+                btnCajero.className = TAB_ON;
+                btnRecepcionista.className = TAB_OFF;
+                mainTitle.innerText = 'CHECK LIST CAJERO';
+            } else {
+                btnRecepcionista.className = TAB_ON;
+                btnCajero.className = TAB_OFF;
+                mainTitle.innerText = 'CHECK LIST RECEPCIONISTA';
+            }
+
+            document.getElementById('input-nombre').value = states[newTab].nombre;
+            document.getElementById('input-fecha').value = states[newTab].fecha;
+            document.getElementById('input-turno').value = states[newTab].turno;
+
+            renderTable();
+        }
+
+        function updateCurrentData() {
+            states[activeTab].nombre = document.getElementById('input-nombre').value;
+            states[activeTab].fecha = document.getElementById('input-fecha').value;
+            states[activeTab].turno = document.getElementById('input-turno').value;
+        }
+
+        function toggleRow(n) {
+            states[activeTab].checks[n] = !states[activeTab].checks[n];
+            renderTable();
+        }
+
+        function renderTable() {
+            const body = document.getElementById('checklist-body');
+            const data = activeTab === 'cajero' ? dataCajero : dataRecepcionista;
+            const checks = states[activeTab].checks;
+            let completed = 0;
+
+            const html = data.map(item => {
+                const isChecked = checks[item.n] || false;
+                if (isChecked) completed++;
+
+                return `
+                    <tr onclick="toggleRow(${item.n})" class="border-b border-gray-100 cursor-pointer transition-colors ${isChecked ? 'bg-green-50 row-checked' : 'hover:bg-gray-50'}">
+                        <td class="p-2 sm:p-4 text-center font-bold text-gray-300 border-r border-gray-50 align-top sm:align-middle">${item.n}</td>
+                        <td class="p-2 sm:p-4 text-sm md:text-base break-words">
+                            <span class="${isChecked ? 'line-through-text font-medium' : 'text-gray-700'}">${item.tarea}</span>
+                            <span class="sm:hidden block mt-1 text-xs font-bold text-gray-400">Alta: ${item.alta} · Baja: ${item.baja}</span>
+                        </td>
+                        <td class="hidden sm:table-cell p-4 text-center text-xs font-bold text-gray-400">${item.alta}</td>
+                        <td class="hidden sm:table-cell p-4 text-center text-xs font-bold text-gray-400">${item.baja}</td>
+                        <td class="p-2 sm:p-4 text-center align-top sm:align-middle">
+                            <div class="flex justify-center">
+                                ${isChecked ? 
+                                    '<span class="check-mark">✓</span>' : 
+                                    '<div class="w-6 h-6 border-2 border-gray-200 rounded"></div>'
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            body.innerHTML = html;
+            document.getElementById('footer-status').innerText = `ESTADO: ${completed} TAREAS COMPLETADAS DE ${data.length}`;
+        }
+
+        function exportarAExcel() {
+            updateCurrentData();
+            const state = states[activeTab];
+            const data = activeTab === 'cajero' ? dataCajero : dataRecepcionista;
+            const title = activeTab === 'cajero' ? "CHECK LIST CAJERO" : "CHECK LIST RECEPCIONISTA";
+
+            // Preparar datos para SheetJS
+            const excelRows = [
+                [title],
+                ["COLABORADOR:", state.nombre || "N/A"],
+                ["FECHA:", state.fecha],
+                ["TURNO:", state.turno],
+                [],
+                ["Nº", "TAREA", "TEMP. ALTA", "TEMP. BAJA", "COMPLETADO"]
+            ];
+
+            data.forEach(item => {
+                excelRows.push([
+                    item.n,
+                    item.tarea,
+                    item.alta,
+                    item.baja,
+                    state.checks[item.n] ? "SI" : "NO"
+                ]);
+            });
+
+            // Crear libro de trabajo
+            const ws = XLSX.utils.aoa_to_sheet(excelRows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "CheckList");
+
+            // Ajustar anchos de columna
+            ws['!cols'] = [
+                { wch: 5 },  // Nº
+                { wch: 80 }, // Tarea
+                { wch: 12 }, // Alta
+                { wch: 12 }, // Baja
+                { wch: 12 }  // Si/No
+            ];
+
+            // Descargar archivo
+            const fileName = `CheckList_${activeTab}_${state.nombre.replace(/\s+/g, '_')}_${state.fecha}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+        }
+
+        window.onload = () => {
+            lucide.createIcons();
+            document.getElementById('input-nombre').value = states.cajero.nombre;
+            document.getElementById('input-fecha').value = states.cajero.fecha;
+            document.getElementById('input-turno').value = states.cajero.turno;
+            renderTable();
+        };
+    </script>
+</body>
+</html>

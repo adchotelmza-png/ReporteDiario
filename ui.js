@@ -659,6 +659,34 @@ export const UI = {
         if (!selectedNovedadIds.size) this.showMessage('Traspaso de turno', 'No hay novedades pendientes.');
     },
 
+    /* Copia texto con formato como si se seleccionara y copiara a mano (Outlook/Word lo pegan fielmente).
+       Se renderiza en un iframe oculto para que los estilos de la página (tema claro/oscuro) no se mezclen. */
+    copiarRico(html, texto) {
+        try {
+            const fr = document.createElement('iframe');
+            fr.setAttribute('aria-hidden', 'true');
+            fr.style.cssText = 'position:fixed;left:-9999px;top:0;width:900px;height:600px;border:0;';
+            document.body.appendChild(fr);
+            const doc = fr.contentDocument;
+            doc.open();
+            doc.write(`<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="background:#ffffff;color:#000000;">${html}</body></html>`);
+            doc.close();
+            fr.contentWindow.focus();
+            const sel = fr.contentWindow.getSelection();
+            sel.removeAllRanges();
+            const range = doc.createRange();
+            range.selectNodeContents(doc.body);
+            sel.addRange(range);
+            const ok = doc.execCommand('copy');
+            sel.removeAllRanges();
+            fr.remove();
+            if (ok) return Promise.resolve();
+        } catch (_) { /* si falla, se usa el método alternativo */ }
+        return (window.ClipboardItem && navigator.clipboard.write)
+            ? navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([texto], { type: 'text/plain' }) })])
+            : navigator.clipboard.writeText(texto);
+    },
+
     copyWhatsapp() {
         if (!can('whatsapp')) return;
         const usuario = FirebaseService.session?.nombre || '', hoy = new Date();
@@ -678,16 +706,20 @@ export const UI = {
         const titulo = `Novedades Turno ${this.calcularTurno()} ${fechaHoy}${usuario ? ' - ' + usuario : ''}`;
         /* Se copia como texto enriquecido para Outlook/Word: título y "fecha RVA" en negrita, una viñeta (•) por novedad */
         const conBr = t => escapeHTML(t).replace(/\n/g, '<br>');
-        const html = `<div style="font-family:Calibri,Arial,sans-serif;font-size:11pt;">`
-            + `<p style="margin:0 0 6pt 0;"><b>${escapeHTML(titulo)}</b></p>`
+        const N = 'font-weight:normal;color:#000000;', B = 'font-weight:bold;color:#000000;';
+        const html = `<div style="font-family:Calibri,Arial,sans-serif;font-size:11pt;${N}">`
+            + `<p style="margin:0 0 6pt 0;${B}"><span style="${B}">${escapeHTML(titulo)}</span></p>`
             + `<ul style="margin-top:0;margin-bottom:0;">`
-            + lineas.map(l => `<li style="margin-bottom:3pt;"><b>${escapeHTML(l.negrita)}</b> ${conBr(l.cuerpo)} `
-                + `<b style="color:${l.estado === 'COMPLETADO' ? '#00B050' : '#FF0000'};">${l.estado}</b>${conBr(l.respuesta)}</li>`).join('')
+            + lineas.map(l => {
+                const col = l.estado === 'COMPLETADO' ? '#00B050' : '#FF0000';
+                return `<li style="margin-bottom:3pt;${N}"><span style="${B}">${escapeHTML(l.negrita)}</span>`
+                    + `<span style="${N}"> ${conBr(l.cuerpo)} </span>`
+                    + `<span style="font-weight:bold;color:${col};"><font color="${col}"><b>${l.estado}</b></font></span>`
+                    + `<span style="${N}">${conBr(l.respuesta)}</span></li>`;
+            }).join('')
             + `</ul></div>`;
         const texto = [titulo, ...lineas.map(l => `• ${l.negrita} ${l.cuerpo} ${l.estado}${l.respuesta}`)].join('\n');
-        const copiar = (window.ClipboardItem && navigator.clipboard.write)
-            ? navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([texto], { type: 'text/plain' }) })])
-            : navigator.clipboard.writeText(texto);
+        const copiar = this.copiarRico(html, texto);
         copiar.then(() => {
             selectedNovedadIds.clear(); 
             this.updateWhatsappButton(); 

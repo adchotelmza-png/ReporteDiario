@@ -34,6 +34,9 @@ export const PERMISOS = [
     { k: 'pdf',        label: 'Exportar PDF / Imprimir' },
     { k: 'borrarTodo', label: 'Borrar TODOS los registros' }
 ];
+/* Formato de clave: 1 mayúscula + minúsculas + 4 números (ej.: Lionel1234) */
+export const CLAVE_REGEX = /^[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+\d{4}$/;
+export const CLAVE_EJEMPLO = 'Lionel1234';
 const userId = u => String(u || '').trim().toLowerCase();
 export const slug = t => String(t || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const getPath = (colName) => isCanvasEnvironment ? `artifacts/${appId}/public/data/${colName}` : colName;
@@ -110,6 +113,20 @@ export const FirebaseService = {
         const rolSnap = await getDoc(doc(db, getPath(ROLES_COLLECTION_NAME), u.rolId));
         const rol = rolSnap.exists() ? rolSnap.data() : { nombre: '(sin categoría)', permisos: {} };
         return { usuario: u.usuario, nombre: u.nombre, rolId: u.rolId, rolNombre: rol.nombre, permisos: rol.permisos || {}, esAdmin: u.rolId === 'admin' };
+    },
+
+    /* El usuario conectado cambia su propia clave */
+    async cambiarClave(actual, nueva, repetir) {
+        if (!this.session) throw new Error('No hay sesión iniciada.');
+        if (!actual || !nueva || !repetir) throw new Error('Completá los tres campos.');
+        const ref = doc(db, getPath(USERS_COLLECTION_NAME), userId(this.session.usuario));
+        const snap = await getDoc(ref);
+        if (!snap.exists()) throw new Error('Tu usuario ya no existe.');
+        if (snap.data().clave !== actual) throw new Error('La clave actual es incorrecta.');
+        if (!CLAVE_REGEX.test(nueva)) throw new Error(`La clave nueva debe tener la primera letra en mayúscula, luego minúsculas y 4 números. Ejemplo: ${CLAVE_EJEMPLO}`);
+        if (nueva !== repetir) throw new Error('La clave nueva y su repetición no coinciden.');
+        if (nueva === actual) throw new Error('La clave nueva debe ser distinta de la actual.');
+        await updateDoc(ref, { clave: nueva });
     },
 
     async verifyAdminPassword(clave) {

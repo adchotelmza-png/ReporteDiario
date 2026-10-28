@@ -205,6 +205,24 @@ export const UI = {
         modal._returnFocus = null;
     },
 
+    openChangePass() {
+        $('user-menu').classList.add('hidden');
+        ['cp-actual', 'cp-nueva', 'cp-repetir'].forEach(id => { $(id).value = ''; });
+        $('cp-error').classList.add('hidden');
+        this.openModal($('change-pass-modal'), 'cp-actual');
+    },
+
+    async handleChangePass() {
+        const err = $('cp-error'), btn = $('cp-confirm');
+        err.classList.add('hidden'); btn.disabled = true;
+        try {
+            await FirebaseService.cambiarClave($('cp-actual').value, $('cp-nueva').value, $('cp-repetir').value);
+            this.closeModal($('change-pass-modal'));
+            this.showMessage('Éxito', 'Tu clave fue actualizada. Usala la próxima vez que inicies sesión.');
+        } catch (e) { err.textContent = e.message; err.classList.remove('hidden'); }
+        finally { btn.disabled = false; }
+    },
+
     showMessage(title, content) {
         $('modal-title').textContent = title;
         $('modal-content').textContent = content;
@@ -212,6 +230,13 @@ export const UI = {
             const modal = e.currentTarget.closest('.modal-overlay');
             if (modal) this.closeModal(modal);
         }));
+
+        /* Menú del usuario -> Cambiar clave */
+        $('user-info').addEventListener('click', e => { e.stopPropagation(); if (FirebaseService.session) $('user-menu').classList.toggle('hidden'); });
+        document.addEventListener('click', e => { if (!e.target.closest('#user-menu')) $('user-menu').classList.add('hidden'); });
+        $('open-change-pass-btn').addEventListener('click', () => this.openChangePass());
+        $('cp-confirm').addEventListener('click', () => this.handleChangePass());
+        ['cp-actual', 'cp-nueva', 'cp-repetir'].forEach(id => $(id).addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); this.handleChangePass(); } }));
 
         $('login-button').addEventListener('click', () => this.handleLogin());$('logout-button').addEventListener('click', async () => { this.clearDraft(); await FirebaseService.logout(); this.onAuthError(); });
         ['login-usuario', 'login-password'].forEach(id => $(id).addEventListener('keydown', e => {
@@ -335,7 +360,7 @@ export const UI = {
     onAuthSuccess(session) {
         this.applyPermissions(session);
         $('login-overlay').classList.add('hidden');$('main-content').classList.remove('hidden');
-        $('user-info').innerHTML = `<strong>${escapeHTML(session.nombre)}</strong>&nbsp;·&nbsp;${escapeHTML(session.rolNombre)}`;$('user-info').className = 'user-info-badge status-connected';
+        $('user-info').innerHTML = `<strong>${escapeHTML(session.nombre)}</strong>&nbsp;·&nbsp;${escapeHTML(session.rolNombre)}`;$('user-info').className = 'user-info-badge status-connected clickable'; $('user-info').title = 'Cambiar clave';
         FirebaseService.listenNovedades(
             items => this.onNovedadesUpdate(items),
             err => this.showMessage('Error', 'No se pudieron cargar los registros: ' + err.message));
@@ -697,31 +722,14 @@ export const UI = {
     },
 
     async copiarRico(html, texto) {
-        const errores = [];
-        window.focus();
-
-        // 1) API moderna del portapapeles (la más confiable en https)
-        if (window.ClipboardItem && navigator.clipboard?.write) {
-            try {
-                await navigator.clipboard.write([new ClipboardItem({
-                    'text/html': new Blob([html], { type: 'text/html' }),
-                    'text/plain': new Blob([texto], { type: 'text/plain' })
-                })]);
-                return;
-            } catch (e) { errores.push('clipboard.write: ' + (e?.name || e)); }
-        }
-
-        // 2) Selección + execCommand (iframe oculto y luego div oculto)
         if (this._copiarSeleccion(html, 'iframe')) return;
         if (this._copiarSeleccion(html, 'div')) return;
-
-        // 3) Solo texto plano
-        if (navigator.clipboard?.writeText) {
-            try { await navigator.clipboard.writeText(texto); return; }
-            catch (e) { errores.push('writeText: ' + (e?.name || e)); }
+        if (window.ClipboardItem && navigator.clipboard?.write) {
+            await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([texto], { type: 'text/plain' }) })]);
+            return;
         }
-
-        throw new Error(errores.join(' | ') || 'el navegador bloqueó el portapapeles');
+        if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(texto); return; }
+        throw new Error('el navegador no permite copiar (la página debe abrirse con https://)');
     },
 
     copyWhatsapp() {

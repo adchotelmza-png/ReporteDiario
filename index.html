@@ -80,6 +80,12 @@
         /* --- Módulo de administración --- */
         #open-admin-btn { display: none; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 0.8rem; font-size: 0.85rem; margin: 0; }
         .is-admin #open-admin-btn { display: inline-flex; }
+        #user-info.clickable { cursor: pointer; }
+        #user-info.clickable:hover { filter: brightness(1.15); }
+        #user-menu { position: absolute; top: 40px; left: 0; z-index: 10004; padding: 0.4rem; min-width: 11rem; box-shadow: 0 6px 20px rgba(0,0,0,.35); }
+        #user-menu button { width: 100%; justify-content: flex-start; }
+        #change-pass-modal .modal-password-input { margin-bottom: 0.6rem; width: 100%; box-sizing: border-box; }
+        #change-pass-modal .pass-hint { font-size: 0.8rem; opacity: .8; margin: 0 0 0.6rem 0; }
         #open-admin-btn[hidden] { display: none !important; }
 
         /* --- Botón Cerrar sesión: rojo con letras blancas en tema claro y oscuro (solo color, mismo tamaño) --- */
@@ -140,6 +146,9 @@
                 <div class="header-actions-container">
                     <div id="user-info" class="user-info-badge status-loading">
                         Cargando usuario...
+                    </div>
+                    <div id="user-menu" class="card hidden">
+                        <button type="button" id="open-change-pass-btn" class="button button-secondary">🔑 Cambiar clave</button>
                     </div>
                     <button id="open-admin-btn" type="button" class="button button-secondary" title="Administrar usuarios y categorías">
                         <svg class="icon" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" style="width: 16px; height: 16px;"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zm8 0a3 3 0 11-6 0 3 3 0 016 0zM1.5 16.5a6 6 0 0112 0v.5h-12v-.5zm11.5.5v-.5a7.5 7.5 0 00-1.2-4.05A6 6 0 0119 16.5v.5h-6z"></path></svg>
@@ -536,6 +545,21 @@
         </div>
     </div>
 
+    <div id="change-pass-modal" class="modal-overlay hidden" style="z-index: 10003;">
+        <div class="modal-container card">
+            <h3 class="modal-title">Cambiar clave</h3>
+            <input type="password" id="cp-actual" class="modal-password-input" placeholder="Clave actual" autocomplete="current-password">
+            <input type="password" id="cp-nueva" class="modal-password-input" placeholder="Clave nueva" autocomplete="new-password">
+            <input type="password" id="cp-repetir" class="modal-password-input" placeholder="Repetir clave nueva" autocomplete="new-password">
+            <p class="pass-hint">La clave debe tener la primera letra en mayúscula, luego minúsculas y 4 números. Ejemplo: <strong>Lionel1234</strong></p>
+            <p id="cp-error" class="modal-error-message hidden"></p>
+            <div class="modal-actions">
+                <button type="button" class="button button-gray btn-cerrar-modal">Cancelar</button>
+                <button type="button" id="cp-confirm" class="button button-primary">Guardar clave</button>
+            </div>
+        </div>
+    </div>
+
     <div id="admin-gate-modal" class="modal-overlay hidden" style="z-index: 10003;">
         <div class="modal-container card">
             <h3 class="modal-title">Administración</h3>
@@ -604,7 +628,7 @@
 
     <script type="module">
         import { FirebaseService } from './firebase-service.js';
-        import { UI } from './ui.js?v=20261028i';
+        import { UI } from './ui.js?v=20261028j';
         UI.init();
         FirebaseService.init(session => UI.onAuthSuccess(session), () => UI.onAuthError(), err => UI.onInitError(err))
             .catch(err => UI.onInitError(err));

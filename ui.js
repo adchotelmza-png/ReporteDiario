@@ -672,9 +672,8 @@ export const UI = {
             const d = novedadDate(n) || hoy;
             const respuesta = (n.comentarios || []).map(c => String(c.text || '').trim()).filter(Boolean).join(' / ');
             const negrita = `${dd(d.getDate())}/${dd(d.getMonth() + 1)}${n.nReserva ? ' RVA' : ''}`;
-            const resto = [n.nReserva || '', n.habitacion ? `HAB ${n.habitacion}` : '', n.novedad].filter(Boolean).join(' ')
-                + ` ${estadoDe(n).toUpperCase()}` + (respuesta ? ` - ${respuesta}` : '');
-            return { negrita, resto };
+            const cuerpo = [n.nReserva || '', n.habitacion ? `HAB ${n.habitacion}` : '', n.novedad].filter(Boolean).join(' ');
+            return { negrita, cuerpo, estado: estadoDe(n).toUpperCase(), respuesta: respuesta ? ` - ${respuesta}` : '' };
         });
         const titulo = `Novedades Turno ${this.calcularTurno()} ${fechaHoy}${usuario ? ' - ' + usuario : ''}`;
         /* Se copia como texto enriquecido para Outlook/Word: título y "fecha RVA" en negrita, una viñeta (•) por novedad */
@@ -682,9 +681,10 @@ export const UI = {
         const html = `<div style="font-family:Calibri,Arial,sans-serif;font-size:11pt;">`
             + `<p style="margin:0 0 6pt 0;"><b>${escapeHTML(titulo)}</b></p>`
             + `<ul style="margin-top:0;margin-bottom:0;">`
-            + lineas.map(l => `<li style="margin-bottom:3pt;"><b>${escapeHTML(l.negrita)}</b> ${conBr(l.resto)}</li>`).join('')
+            + lineas.map(l => `<li style="margin-bottom:3pt;"><b>${escapeHTML(l.negrita)}</b> ${conBr(l.cuerpo)} `
+                + `<b style="color:${l.estado === 'COMPLETADO' ? '#00B050' : '#FF0000'};">${l.estado}</b>${conBr(l.respuesta)}</li>`).join('')
             + `</ul></div>`;
-        const texto = [titulo, ...lineas.map(l => `• ${l.negrita} ${l.resto}`)].join('\n');
+        const texto = [titulo, ...lineas.map(l => `• ${l.negrita} ${l.cuerpo} ${l.estado}${l.respuesta}`)].join('\n');
         const copiar = (window.ClipboardItem && navigator.clipboard.write)
             ? navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([texto], { type: 'text/plain' }) })])
             : navigator.clipboard.writeText(texto);

@@ -656,7 +656,7 @@
 
     <script type="module">
         import { FirebaseService } from './firebase-service.js';
-        import { UI } from './ui.js?v=20261028k';
+        import { UI } from './ui.js?v=20261028l';
         UI.init();
         FirebaseService.init(session => UI.onAuthSuccess(session), () => UI.onAuthError(), err => UI.onInitError(err))
             .catch(err => UI.onInitError(err));

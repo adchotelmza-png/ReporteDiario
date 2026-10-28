@@ -118,6 +118,14 @@
     </style>
     <link rel="stylesheet" href="responsive.css">
     <link rel="icon" type="image/png" href="Icono.png">
+    <!-- App instalable (PWA) -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#55565b">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Registro Diario">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 </head>
 <body class="bg-fondo">
 
@@ -628,6 +636,13 @@
                 apply(current);
             });
         })();
+    </script>
+
+    <script>
+        /* Registro del service worker (requisito para poder instalar la app) */
+        if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+            window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+        }
     </script>
 
     <!-- Los módulos (import) no funcionan abriendo el archivo con doble clic (file://): hace falta un servidor -->

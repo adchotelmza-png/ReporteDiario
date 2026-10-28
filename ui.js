@@ -205,10 +205,21 @@ export const UI = {
         modal._returnFocus = null;
     },
 
+    /* Un solo ojito: muestra u oculta los tres campos a la vez (se puede seguir escribiendo) */
+    toggleVerClaves(ver) {
+        const btn = $('cp-toggle-eye');
+        const mostrar = typeof ver === 'boolean' ? ver : !btn.classList.contains('is-visible');
+        ['cp-actual', 'cp-nueva', 'cp-repetir'].forEach(id => { $(id).type = mostrar ? 'text' : 'password'; });
+        btn.classList.toggle('is-visible', mostrar);
+        btn.setAttribute('aria-pressed', String(mostrar));
+        $('cp-toggle-text').textContent = mostrar ? 'Ocultar claves' : 'Mostrar claves';
+    },
+
     openChangePass() {
         $('user-menu').classList.add('hidden');
         ['cp-actual', 'cp-nueva', 'cp-repetir'].forEach(id => { $(id).value = ''; });
         $('cp-error').classList.add('hidden');
+        this.toggleVerClaves(false);
         this.openModal($('change-pass-modal'), 'cp-actual');
     },
 
@@ -236,6 +247,7 @@ export const UI = {
         document.addEventListener('click', e => { if (!e.target.closest('#user-menu')) $('user-menu').classList.add('hidden'); });
         $('open-change-pass-btn').addEventListener('click', () => this.openChangePass());
         $('cp-confirm').addEventListener('click', () => this.handleChangePass());
+        $('cp-toggle-eye').addEventListener('click', () => this.toggleVerClaves());
         ['cp-actual', 'cp-nueva', 'cp-repetir'].forEach(id => $(id).addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); this.handleChangePass(); } }));
 
         $('login-button').addEventListener('click', () => this.handleLogin());$('logout-button').addEventListener('click', async () => { this.clearDraft(); await FirebaseService.logout(); this.onAuthError(); });

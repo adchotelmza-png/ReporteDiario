@@ -85,6 +85,12 @@
         #user-menu { position: absolute; top: 40px; left: 0; z-index: 10004; padding: 0.4rem; min-width: 11rem; box-shadow: 0 6px 20px rgba(0,0,0,.35); }
         #user-menu button { width: 100%; justify-content: flex-start; }
         #change-pass-modal .modal-password-input { margin-bottom: 0.6rem; width: 100%; box-sizing: border-box; }
+        #cp-toggle-eye { display: inline-flex; align-items: center; gap: 6px; background: none; border: 0; padding: 0.25rem 0; margin: 0 0 0.6rem 0; cursor: pointer; color: inherit; font-size: 0.85rem; opacity: .85; }
+        #cp-toggle-eye:hover { opacity: 1; }
+        #cp-toggle-eye svg { width: 20px; height: 20px; }
+        #cp-toggle-eye .eye-off { display: none; }
+        #cp-toggle-eye.is-visible .eye-on { display: none; }
+        #cp-toggle-eye.is-visible .eye-off { display: inline; }
         #change-pass-modal .pass-hint { font-size: 0.8rem; opacity: .8; margin: 0 0 0.6rem 0; }
         #open-admin-btn[hidden] { display: none !important; }
 
@@ -551,6 +557,13 @@
             <input type="password" id="cp-actual" class="modal-password-input" placeholder="Clave actual" autocomplete="current-password">
             <input type="password" id="cp-nueva" class="modal-password-input" placeholder="Clave nueva" autocomplete="new-password">
             <input type="password" id="cp-repetir" class="modal-password-input" placeholder="Repetir clave nueva" autocomplete="new-password">
+            <button type="button" id="cp-toggle-eye" aria-pressed="false" title="Mostrar / ocultar las claves">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <g class="eye-on"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></g>
+                    <g class="eye-off"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></g>
+                </svg>
+                <span id="cp-toggle-text">Mostrar claves</span>
+            </button>
             <p class="pass-hint">La clave debe tener la primera letra en mayúscula, luego minúsculas y 4 números. Ejemplo: <strong>Lionel1234</strong></p>
             <p id="cp-error" class="modal-error-message hidden"></p>
             <div class="modal-actions">
@@ -628,7 +641,7 @@
 
     <script type="module">
         import { FirebaseService } from './firebase-service.js';
-        import { UI } from './ui.js?v=20261028j';
+        import { UI } from './ui.js?v=20261028k';
         UI.init();
         FirebaseService.init(session => UI.onAuthSuccess(session), () => UI.onAuthError(), err => UI.onInitError(err))
             .catch(err => UI.onInitError(err));

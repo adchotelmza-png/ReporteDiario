@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Diagnóstico de la app</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        body { font-family: Arial, sans-serif; background: #1f2023; color: #f2f2f2; margin: 0; padding: 16px; line-height: 1.4; }
+        h1 { font-size: 1.2rem; margin: 0 0 4px; }
+        p.sub { margin: 0 0 14px; opacity: .75; font-size: .85rem; }
+        .row { background: #2b2d31; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; font-size: .9rem; word-break: break-word; }
+        .ok { border-left: 5px solid #22c55e; }
+        .bad { border-left: 5px solid #ef4444; }
+        .warn { border-left: 5px solid #f59e0b; }
+        .row small { display: block; opacity: .75; margin-top: 3px; }
+        button { width: 100%; padding: 14px; font-size: 1rem; border: 0; border-radius: 8px; background: #22c55e; color: #000; font-weight: bold; margin: 8px 0; }
+        button[disabled] { display: none; }
+        #resultado { font-weight: bold; margin: 12px 0; padding: 12px; border-radius: 8px; background: #2b2d31; }
+    </style>
+</head>
+<body>
+    <h1>Diagnóstico de la app instalable</h1>
+    <p class="sub">Esperá unos segundos: la página revisa todo sola.</p>
+    <div id="lista"></div>
+    <div id="resultado">Revisando…</div>
+    <button id="btn-instalar" disabled>📲 Instalar app ahora</button>
+
+    <script>
+        var lista = document.getElementById('lista');
+        function fila(tipo, texto, detalle) {
+            var d = document.createElement('div');
+            d.className = 'row ' + tipo;
+            d.innerHTML = (tipo === 'ok' ? '✅ ' : tipo === 'bad' ? '❌ ' : '⚠️ ') + texto + (detalle ? '<small>' + detalle + '</small>' : '');
+            lista.appendChild(d);
+        }
+        var promptEvt = null, instalable = false;
+        window.addEventListener('beforeinstallprompt', function (e) {
+            e.preventDefault(); promptEvt = e; instalable = true;
+            var b = document.getElementById('btn-instalar'); b.disabled = false;
+            b.onclick = function () { promptEvt.prompt(); };
+        });
+
+        function cargarImagen(url) {
+            return new Promise(function (res) {
+                var i = new Image();
+                i.onload = function () { res({ ok: true, w: i.naturalWidth, h: i.naturalHeight }); };
+                i.onerror = function () { res({ ok: false }); };
+                i.src = url + (url.indexOf('?') < 0 ? '?' : '&') + 't=' + Date.now();
+            });
+        }
+
+        async function revisar() {
+            // 1) https
+            if (location.protocol === 'https:') fila('ok', 'La página usa https://');
+            else fila('bad', 'La página NO usa https://', 'La app solo se puede instalar desde https://');
+
+            // 2) ya instalada
+            if (window.matchMedia('(display-mode: standalone)').matches) fila('warn', 'Esta página ya se está ejecutando como app instalada');
+
+            // 3) manifest
+            var manifest = null, base = location.href;
+            try {
+                var r = await fetch('manifest.json?t=' + Date.now(), { cache: 'no-store' });
+                if (!r.ok) fila('bad', 'manifest.json no se puede abrir (error ' + r.status + ')', 'El archivo no está en la misma carpeta que index.html');
+                else {
+                    var txt = await r.text();
+                    try { manifest = JSON.parse(txt); fila('ok', 'manifest.json se abre y es válido'); }
+                    catch (e) { fila('bad', 'manifest.json tiene un error de formato', String(e.message)); }
+                }
+            } catch (e) { fila('bad', 'No se pudo leer manifest.json', String(e.message)); }
+
+            // 4) index.html enlaza el manifest
+            try {
+                var h = await (await fetch('index.html?t=' + Date.now(), { cache: 'no-store' })).text();
+                if (/rel=["']manifest["']/i.test(h)) fila('ok', 'index.html enlaza el manifest');
+                else fila('bad', 'index.html NO enlaza el manifest', 'Falta la línea <link rel="manifest"…>. Hay que subir el index.html nuevo.');
+                if (/serviceWorker\.register/.test(h)) fila('ok', 'index.html registra el service worker');
+                else fila('bad', 'index.html NO registra el service worker', 'Falta el script que registra sw.js. Hay que subir el index.html nuevo.');
+            } catch (e) { fila('warn', 'No se pudo revisar index.html', String(e.message)); }
+
+            // 5) datos del manifest
+            if (manifest) {
+                if (manifest.name || manifest.short_name) fila('ok', 'Nombre: ' + (manifest.name || manifest.short_name));
+                else fila('bad', 'El manifest no tiene "name" ni "short_name"');
+                if (manifest.start_url) fila('ok', 'start_url: ' + manifest.start_url);
+                else fila('bad', 'El manifest no tiene "start_url"');
+                if (['standalone', 'fullscreen', 'minimal-ui'].indexOf(manifest.display) >= 0) fila('ok', 'display: ' + manifest.display);
+                else fila('bad', 'El manifest tiene un "display" no válido para instalar', String(manifest.display));
+
+                // 6) íconos
+                var iconos = manifest.icons || [];
+                var tiene192 = false, tiene512 = false;
+                if (!iconos.length) fila('bad', 'El manifest no tiene íconos');
+                for (var k = 0; k < iconos.length; k++) {
+                    var ic = iconos[k], url = new URL(ic.src, new URL('manifest.json', base)).href;
+                    var im = await cargarImagen(url);
+                    if (!im.ok) fila('bad', 'No carga el ícono: ' + ic.src, 'El archivo no existe en esa ruta o está dañado. Probá abrir: ' + url);
+                    else {
+                        var real = im.w + 'x' + im.h, decl = ic.sizes;
+                        if (real === decl) fila('ok', 'Ícono ' + ic.src + ' (' + real + ', ' + (ic.purpose || 'any') + ')');
+                        else fila('warn', 'Ícono ' + ic.src + ' mide ' + real + ' pero el manifest dice ' + decl);
+                        var esAny = (ic.purpose || 'any').indexOf('any') >= 0;
+                        if (esAny && im.w >= 192) tiene192 = true;
+                        if (esAny && im.w >= 512) tiene512 = true;
+                    }
+                }
+                if (iconos.length && !tiene192) fila('bad', 'Falta un ícono PNG de 192x192 (o mayor) con purpose "any"');
+                if (iconos.length && !tiene512) fila('bad', 'Falta un ícono PNG de 512x512 con purpose "any"');
+            }
+
+            // 7) service worker
+            if (!('serviceWorker' in navigator)) fila('bad', 'Este navegador no soporta service workers');
+            else {
+                try {
+                    var sw = await fetch('sw.js?t=' + Date.now(), { cache: 'no-store' });
+                    if (!sw.ok) fila('bad', 'sw.js no se puede abrir (error ' + sw.status + ')', 'Tiene que estar en la misma carpeta que index.html');
+                    else fila('ok', 'sw.js se puede abrir');
+                } catch (e) { fila('bad', 'No se pudo leer sw.js', String(e.message)); }
+                try {
+                    var reg = await navigator.serviceWorker.register('sw.js');
+                    await navigator.serviceWorker.ready;
+                    fila('ok', 'Service worker registrado y activo', 'Alcance: ' + reg.scope);
+                } catch (e) { fila('bad', 'No se pudo registrar el service worker', String(e.message)); }
+            }
+
+            // 8) ¿Chrome lo considera instalable?
+            var res = document.getElementById('resultado');
+            res.textContent = 'Esperando la respuesta de Chrome…';
+            setTimeout(function () {
+                if (instalable) { res.textContent = '✅ Chrome dice que SÍ se puede instalar. Tocá el botón verde de abajo.'; }
+                else if (window.matchMedia('(display-mode: standalone)').matches) { res.textContent = 'Ya está instalada.'; }
+                else { res.innerHTML = '⚠️ Chrome no ofreció instalar. Si arriba no hay ❌, probá: cerrar Chrome del todo, abrir esta página otra vez y esperar 10 segundos. Si ya estaba instalada antes, desinstalala y reintentá.<br><br>Si hay ❌ arriba, ese es el problema a corregir.'; }
+            }, 4000);
+        }
+        revisar();
+    </script>
+</body>
+</html>

@@ -697,14 +697,31 @@ export const UI = {
     },
 
     async copiarRico(html, texto) {
+        const errores = [];
+        window.focus();
+
+        // 1) API moderna del portapapeles (la más confiable en https)
+        if (window.ClipboardItem && navigator.clipboard?.write) {
+            try {
+                await navigator.clipboard.write([new ClipboardItem({
+                    'text/html': new Blob([html], { type: 'text/html' }),
+                    'text/plain': new Blob([texto], { type: 'text/plain' })
+                })]);
+                return;
+            } catch (e) { errores.push('clipboard.write: ' + (e?.name || e)); }
+        }
+
+        // 2) Selección + execCommand (iframe oculto y luego div oculto)
         if (this._copiarSeleccion(html, 'iframe')) return;
         if (this._copiarSeleccion(html, 'div')) return;
-        if (window.ClipboardItem && navigator.clipboard?.write) {
-            await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([texto], { type: 'text/plain' }) })]);
-            return;
+
+        // 3) Solo texto plano
+        if (navigator.clipboard?.writeText) {
+            try { await navigator.clipboard.writeText(texto); return; }
+            catch (e) { errores.push('writeText: ' + (e?.name || e)); }
         }
-        if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(texto); return; }
-        throw new Error('el navegador no permite copiar (la página debe abrirse con https://)');
+
+        throw new Error(errores.join(' | ') || 'el navegador bloqueó el portapapeles');
     },
 
     copyWhatsapp() {

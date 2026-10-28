@@ -659,32 +659,52 @@ export const UI = {
         if (!selectedNovedadIds.size) this.showMessage('Traspaso de turno', 'No hay novedades pendientes.');
     },
 
-    /* Copia texto con formato como si se seleccionara y copiara a mano (Outlook/Word lo pegan fielmente).
-       Se renderiza en un iframe oculto para que los estilos de la página (tema claro/oscuro) no se mezclen. */
-    copiarRico(html, texto) {
+    /* Copia el reporte con formato (Outlook/Word lo pegan con viñetas, negrita y colores).
+       Se prueba en cascada: 1) selección en un iframe oculto, 2) selección en un div oculto, 3) API del portapapeles. */
+    _copiarSeleccion(html, modo) {
+        let host = null;
         try {
-            const fr = document.createElement('iframe');
-            fr.setAttribute('aria-hidden', 'true');
-            fr.style.cssText = 'position:fixed;left:-9999px;top:0;width:900px;height:600px;border:0;';
-            document.body.appendChild(fr);
-            const doc = fr.contentDocument;
-            doc.open();
-            doc.write(`<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="background:#ffffff;color:#000000;">${html}</body></html>`);
-            doc.close();
-            fr.contentWindow.focus();
-            const sel = fr.contentWindow.getSelection();
+            let doc, win, root;
+            if (modo === 'iframe') {
+                host = document.createElement('iframe');
+                host.setAttribute('aria-hidden', 'true');
+                host.style.cssText = 'position:fixed;left:-9999px;top:0;width:900px;height:600px;border:0;';
+                document.body.appendChild(host);
+                doc = host.contentDocument; win = host.contentWindow;
+                doc.open();
+                doc.write(`<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="background:#ffffff;color:#000000;">${html}</body></html>`);
+                doc.close();
+                root = doc.body;
+                win.focus();
+            } else {
+                host = document.createElement('div');
+                host.setAttribute('aria-hidden', 'true');
+                host.style.cssText = 'position:fixed;left:-9999px;top:0;background:#ffffff;color:#000000;';
+                host.innerHTML = html;
+                document.body.appendChild(host);
+                doc = document; win = window; root = host;
+            }
+            const sel = win.getSelection();
             sel.removeAllRanges();
             const range = doc.createRange();
-            range.selectNodeContents(doc.body);
+            range.selectNodeContents(root);
             sel.addRange(range);
             const ok = doc.execCommand('copy');
             sel.removeAllRanges();
-            fr.remove();
-            if (ok) return Promise.resolve();
-        } catch (_) { /* si falla, se usa el método alternativo */ }
-        return (window.ClipboardItem && navigator.clipboard.write)
-            ? navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([texto], { type: 'text/plain' }) })])
-            : navigator.clipboard.writeText(texto);
+            return ok;
+        } catch (_) { return false; }
+        finally { host?.remove(); }
+    },
+
+    async copiarRico(html, texto) {
+        if (this._copiarSeleccion(html, 'iframe')) return;
+        if (this._copiarSeleccion(html, 'div')) return;
+        if (window.ClipboardItem && navigator.clipboard?.write) {
+            await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([texto], { type: 'text/plain' }) })]);
+            return;
+        }
+        if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(texto); return; }
+        throw new Error('el navegador no permite copiar (la página debe abrirse con https://)');
     },
 
     copyWhatsapp() {
@@ -725,7 +745,7 @@ export const UI = {
             this.updateWhatsappButton(); 
             this.applyFiltersAndRender(false);
             this.showMessage('Éxito', 'Reporte copiado. Pegalo en tu email.');
-        }).catch(() => this.showMessage('Error', 'No se pudo copiar.'));
+        }, err => this.showMessage('Error', 'No se pudo copiar: ' + (err?.message || err?.name || 'motivo desconocido')));
     },
 
     exportExcel() {

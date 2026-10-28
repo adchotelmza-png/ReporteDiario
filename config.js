@@ -1,5 +1,4 @@
 window.APP_CONFIG = Object.freeze({
-    DELETE_ALL_PASSWORD: '123456',
     FIRESTORE_FETCH_LIMIT: 200,
     FIREBASE_CONFIG: {
         apiKey: "AIzaSyBzaogksK1LDPaQgbx8ya-B_CDN_vBVd0w",

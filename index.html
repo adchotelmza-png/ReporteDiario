@@ -80,6 +80,7 @@
         /* --- Módulo de administración --- */
         #open-admin-btn { display: none; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 0.8rem; font-size: 0.85rem; margin: 0; }
         .is-admin #open-admin-btn { display: inline-flex; }
+        #open-admin-btn[hidden] { display: none !important; }
         .admin-tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; border-bottom: 1px solid rgba(128,128,128,0.25); }
         .admin-tabs button { background: none; border: none; border-bottom: 3px solid transparent; color: inherit; opacity: 0.7; padding: 0.5rem 1rem; font-size: 0.95rem; font-weight: 600; cursor: pointer; }
         .admin-tabs button.is-active { border-bottom-color: #FA780C; opacity: 1; }
@@ -215,7 +216,7 @@
                         <label for="filter-estado" class="form-label" style="font-size: 0.8rem;">Estado</label>
                         <select id="filter-estado" class="form-select" style="padding: 0.4rem; font-size: 0.9rem;">
                             <option value="">Todos</option>
-                            <option value="En curso">En curso</option>
+                            <option value="Pendiente">Pendiente</option>
                             <option value="Completado">Completado</option>
                         </select>
                     </div>
@@ -447,13 +448,10 @@
     <div id="delete-all-modal" class="modal-overlay hidden">
         <div class="modal-container card">
             <h3 class="modal-title modal-title-danger">Eliminar Todos los Registros</h3>
-            <p class="modal-content">¡Atención! Acción irreversible.</p>
-            <label for="delete-all-password" class="modal-password-label">Escribe la clave de seguridad:</label>
-            <input type="password" id="delete-all-password" class="modal-password-input" placeholder="Clave de seguridad">
-            <p id="delete-all-error" class="modal-error-message hidden">La clave es incorrecta.</p>
+            <p class="modal-content">¿Seguro que querés borrar todos los registros? Esta acción no se puede deshacer.</p>
             <div class="modal-actions">
                 <button class="button button-gray btn-cerrar-modal">Cancelar</button>
-                <button id="confirm-delete-all-btn" class="button button-danger">Eliminar Todo</button>
+                <button id="confirm-delete-all-btn" class="button button-danger">Aceptar</button>
             </div>
         </div>
     </div>

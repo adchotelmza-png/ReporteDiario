@@ -10,8 +10,8 @@ const permisos = lista => Object.fromEntries(TODOS.map(k => [k, lista.includes(k
 export const SEED = {
     roles: [
         { id: 'admin', nombre: 'Admin', sistema: true, permisos: permisos(TODOS) },
-        { id: 'gerencia', nombre: 'Gerencia', permisos: permisos(['crear', 'editar', 'borrar', 'estado', 'comentar', 'alarmas', 'whatsapp', 'excel', 'pdf']) },
-        { id: 'jefe-recepcion', nombre: 'Jefe Recepción', permisos: permisos(['crear', 'editar', 'borrar', 'estado', 'comentar', 'alarmas', 'whatsapp', 'pdf']) },
+        { id: 'gerencia', nombre: 'Gerencia', permisos: permisos(TODOS) },
+        { id: 'jefe-recepcion', nombre: 'Jefe Recepción', permisos: permisos(TODOS) },
         { id: 'recepcionista', nombre: 'Recepcionista', permisos: permisos(['crear', 'editar', 'estado', 'comentar', 'whatsapp']) }
     ],
     usuarios: [

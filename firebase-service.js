@@ -121,7 +121,7 @@ export const FirebaseService = {
         const snap = await getDocs(collection(db, getPath(USERS_COLLECTION_NAME)));
         if (!snap.empty) return;
         let SEED;
-        try { ({ SEED } = await import('./seed.js')); } catch (_) { return; }   // sin seed.js no se carga nada
+        try { ({ SEED } = await import('./seed.js')); } catch (e) { console.warn('No se pudo cargar seed.js:', e); return; }   // sin seed.js no se carga nada
         for (const r of SEED.roles) await setDoc(doc(db, getPath(ROLES_COLLECTION_NAME), r.id), { nombre: r.nombre, permisos: r.permisos, sistema: !!r.sistema });
         for (const u of SEED.usuarios) await setDoc(doc(db, getPath(USERS_COLLECTION_NAME), userId(u.usuario)), { usuario: u.usuario, clave: u.clave, nombre: u.nombre, rolId: u.rolId });
     },
@@ -182,7 +182,7 @@ export const FirebaseService = {
             const configRef = doc(db, getPath('hotel_config'), 'categorias');
             const snap = await getDocs(collection(db, getPath('hotel_config')));
             if (snap.empty) {
-                const options = ['Mantenimiento', 'HSKP', 'ReservasHA', 'ReservasHE', 'Front', 'Jefe Recepción', 'Seguridad', 'Parking', 'A.Públicas', 'Piscina', 'GerenciaO', 'GerenciaD'];
+                const options = ['Mantenimiento', 'HSKP', 'Front', 'Jefe Recepción', 'Parking', 'Gerencia', 'Reservas', 'Administración', 'Spa', 'Restaurante'];
                 await setDoc(configRef, { options, creadoEn: serverTimestamp() });
             }
         } catch (e) { console.error(e); }
@@ -212,7 +212,7 @@ export const FirebaseService = {
     async addNovedad(payload) {
         return await addDoc(collection(db, getPath(COLLECTION_NAME)), {
             ...payload, timestamp: serverTimestamp(), userId: this.user.uid,
-            userEmail: this.email, userUsuario: this.session?.usuario || null, estado: 'En curso', comentarios: []
+            userEmail: this.email, userUsuario: this.session?.usuario || null, estado: 'Pendiente', comentarios: []
         });
     },
 

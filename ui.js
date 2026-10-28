@@ -22,8 +22,9 @@ let triggeredCacheDate = '', alarmInterval = null;
 let agingInterval = null, staleOnly = false;
 const DRAFT_KEY = 'registro-diario:borrador-novedad';
 const DRAFT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-/* Horas que una novedad "En curso" puede estar abierta antes de marcarse como atrasada (editable) */
+/* Horas que una novedad "Pendiente" puede estar abierta antes de marcarse como atrasada (editable) */
 const STALE_HOURS = { Urgente: 4, Alta: 12, Media: 24, Baja: 48 };
+const estadoDe = n => n.estado === 'Completado' ? 'Completado' : 'Pendiente';   // los registros viejos "En curso" cuentan como Pendiente
 const novedadDate = n => n.timestamp?.toDate ? n.timestamp.toDate() : null;
 const isStale = n => {
     if (n.estado === 'Completado') return false;
@@ -32,7 +33,7 @@ const isStale = n => {
 };
 const formatAge = ms => { const h = Math.floor(ms / 36e5); return h < 48 ? `${Math.max(h, 1)} h` : `${Math.floor(h / 24)} d`; };
 
-const multiselectOptions = ['Mantenimiento', 'HSKP', 'ReservasHA', 'ReservasHE', 'Front', 'Jefe Recepción', 'Seguridad', 'Parking', 'A.Públicas', 'Piscina', 'GerenciaO', 'GerenciaD'];
+const multiselectOptions = ['Mantenimiento', 'HSKP', 'Front', 'Jefe Recepción', 'Parking', 'Gerencia', 'Reservas', 'Administración', 'Spa', 'Restaurante'];
 const LOGIN_ERRORS = {
     'app/invalid-credential': 'Usuario o clave incorrectos.',
     'permission-denied': 'Sin permiso en Firestore: revisa las reglas de seguridad (ver instrucciones).',
@@ -55,7 +56,7 @@ function abrirModalDetalleMovil(n) {
         </div>
         <div style="display: flex; justify-content: space-between; border-top: 1px solid rgba(128,128,128,0.1); padding-top: 0.5rem;">
             <div><strong style="color:var(--color-texto-secundario); font-size:0.8rem; text-transform:uppercase;">Prioridad:</strong><br><span class="badge ${priorClass}" style="margin-top:2px; display:inline-block;">${escapeHTML(n.prioridad)}</span></div>
-            <div style="text-align:right;"><strong style="color:var(--color-texto-secundario); font-size:0.8rem; text-transform:uppercase;">Estado:</strong><br><strong style="color:${n.estado==='Completado'?'#10b981':'#f59e0b'}">${escapeHTML(n.estado)}</strong></div>
+            <div style="text-align:right;"><strong style="color:var(--color-texto-secundario); font-size:0.8rem; text-transform:uppercase;">Estado:</strong><br><strong style="color:${n.estado==='Completado'?'#10b981':'#f59e0b'}">${escapeHTML(estadoDe(n))}</strong></div>
         </div>
         <div style="display: flex; justify-content: space-between; border-top: 1px solid rgba(128,128,128,0.1); padding-top: 0.5rem;">
             <div><strong style="color:var(--color-texto-secundario); font-size:0.8rem; text-transform:uppercase;">Área / Elemento:</strong><br>${escapeHTML(n.areaElemento || '-')}</div>
@@ -69,7 +70,7 @@ function abrirModalDetalleMovil(n) {
 
     const btnEstado = $('mobile-btn-estado');
     btnEstado.dataset.id = n.id;
-    btnEstado.textContent = n.estado === 'Completado' ? 'Marcar En Curso' : 'Marcar Completado';
+    btnEstado.textContent = n.estado === 'Completado' ? 'Marcar Pendiente' : 'Marcar Completado';
     btnEstado.style.backgroundColor = btnEstado.style.borderColor = btnEstado.style.color = '';
     if(n.estado === 'Completado') {
         btnEstado.className = 'button button-orange';
@@ -126,8 +127,8 @@ export const UI = {
         const sinFechas = !desde && !hasta;
         const chips = [
             { k: 'hoy', label: 'Hoy', n: deHoy, tone: '', active: desde === hoy && hasta === hoy && !estado && !prio && !staleOnly },
-            { k: 'encurso', label: 'En curso', n: enCurso, tone: '', active: estado === 'En curso' && !prio && !staleOnly && sinFechas },
-            { k: 'urgentes', label: 'Urgentes en curso', n: urgentes, tone: 'danger', active: estado === 'En curso' && prio === 'Urgente' && !staleOnly && sinFechas },
+            { k: 'encurso', label: 'Pendientes', n: enCurso, tone: '', active: estado === 'Pendiente' && !prio && !staleOnly && sinFechas },
+            { k: 'urgentes', label: 'Urgentes pendientes', n: urgentes, tone: 'danger', active: estado === 'Pendiente' && prio === 'Urgente' && !staleOnly && sinFechas },
             { k: 'atrasadas', label: 'Atrasadas', n: atrasadas, tone: 'warn', active: staleOnly }
         ];
         box.innerHTML = chips.map(c => `
@@ -145,7 +146,7 @@ export const UI = {
             const hoy = toLocalISODate(new Date());
             if (k === 'hoy') { $('filter-fecha-desde').value = $('filter-fecha-hasta').value = hoy; }
             else {
-                $('filter-estado').value = 'En curso';
+                $('filter-estado').value = 'Pendiente';
                 if (k === 'urgentes') $('filter-prioridad').value = 'Urgente';
                 if (k === 'atrasadas') staleOnly = true;
             }
@@ -281,11 +282,8 @@ export const UI = {
         $('export-pdf-button').addEventListener('click', () => this.exportPDF());$('whatsapp-copy-button').addEventListener('click', () => this.copyWhatsapp());
 
         $('delete-all-btn').addEventListener('click', () => {
-            $('delete-all-password').value = '';$('delete-all-error').classList.add('hidden');
-            this.openModal($('delete-all-modal'), 'delete-all-password');
-        });
-        $('delete-all-password').addEventListener('keydown', e => {
-            if (e.key === 'Enter') { e.preventDefault(); $('confirm-delete-all-btn').click(); }
+            if (!can('borrarTodo')) return;
+            this.openModal($('delete-all-modal'), 'confirm-delete-all-btn');
         });
         $('confirm-delete-all-btn').addEventListener('click', () => this.handleDeleteAll());
 
@@ -328,6 +326,7 @@ export const UI = {
     applyPermissions(session) {
         const cl = document.body.classList;
         cl.toggle('is-admin', !!session?.esAdmin);
+        const adminBtn = $('open-admin-btn'); if (adminBtn) adminBtn.hidden = !session?.esAdmin;
         PERMISOS.forEach(p => cl.toggle(`perm-no-${p.k}`, !(session && (session.esAdmin || session.permisos?.[p.k] === true))));
     },
 
@@ -393,7 +392,7 @@ export const UI = {
         filteredNovedades = currentNovedades.filter(n => {
             if (vTurno && (n.turno || '').toLowerCase() !== vTurno) return false;
             if (vPrioridad && (n.prioridad || '').toLowerCase() !== vPrioridad) return false;
-            if (vEstado && (n.estado || '').toLowerCase() !== vEstado) return false;
+            if (vEstado && estadoDe(n).toLowerCase() !== vEstado) return false;
             if (staleOnly && !isStale(n)) return false;
             if (vFechaDesde || vFechaHasta) {
                 const d = n.timestamp?.toDate ? n.timestamp.toDate() : null;
@@ -434,7 +433,7 @@ export const UI = {
             const priorClass = { 'Urgente':'badge-urgente', 'Alta':'badge-alta', 'Media':'badge-media' }[n.prioridad] || 'badge-baja';
             const count = n.comentarios?.length || 0;
             const stale = isStale(n);
-            const ageBadge = stale ? `<span class="badge-age" title="Sigue En curso desde hace ${formatAge(Date.now() - novedadDate(n).getTime())}">⏰ ${formatAge(Date.now() - novedadDate(n).getTime())}</span>` : '';
+            const ageBadge = stale ? `<span class="badge-age" title="Sigue Pendiente desde hace ${formatAge(Date.now() - novedadDate(n).getTime())}">⏰ ${formatAge(Date.now() - novedadDate(n).getTime())}</span>` : '';
 
             return `
             <tr class="novedad-row${stale ? ' row-stale' : ''}" data-id="${n.id}" title="${tooltipTitle}">
@@ -449,7 +448,7 @@ export const UI = {
                 <td class="cell-notificado">${escapeHTML(n.notificadoA || '-')}</td>
                 <td class="cell-estado">
                     <select data-id="${n.id}" ${can('estado') ? '' : 'disabled'} class="estado-select ${n.estado==='Completado'?'status-completado':'status-encurso'}" title="${compTit}">
-                        <option value="En curso" ${n.estado!=='Completado'?'selected':''}>En curso</option>
+                        <option value="Pendiente" ${n.estado!=='Completado'?'selected':''}>Pendiente</option>
                         <option value="Completado" ${n.estado==='Completado'?'selected':''}>Completado</option>
                     </select>
                 </td>
@@ -535,7 +534,7 @@ export const UI = {
         const id = e.currentTarget.dataset.id, n = allNovedadesMap.get(id);
         this.closeModal($('mobile-detail-modal'));
         if (!n) return;
-        try { await FirebaseService.changeEstadoNovedad(id, n.estado === 'Completado' ? 'En curso' : 'Completado'); }
+        try { await FirebaseService.changeEstadoNovedad(id, n.estado === 'Completado' ? 'Pendiente' : 'Completado'); }
         catch (err) { this.showMessage('Error', 'No se pudo cambiar el estado: ' + err.message); }
     },
 
@@ -611,9 +610,6 @@ export const UI = {
 
     async handleDeleteAll() {
         if (!can('borrarTodo')) return;
-        const pwd = window.APP_CONFIG?.DELETE_ALL_PASSWORD, errEl = $('delete-all-error');
-        if (!pwd) { errEl.textContent = 'No hay clave configurada (revisa config.js).'; return errEl.classList.remove('hidden'); }
-        if ($('delete-all-password').value !== pwd) { errEl.textContent = 'La clave es incorrecta.'; return errEl.classList.remove('hidden'); }
         const btn = $('confirm-delete-all-btn');
         btn.disabled = true;
         try {
@@ -649,10 +645,16 @@ export const UI = {
 
     copyWhatsapp() {
         if (!can('whatsapp')) return;
-        const parts = [];
+        const parts = [], usuario = FirebaseService.session?.nombre || '';
         ['Mañana', 'Tarde', 'Noche', 'Sin Turno'].forEach(t => {
             const novs = Array.from(selectedNovedadIds).map(id => allNovedadesMap.get(id)).filter(n => n && (n.turno || 'Sin Turno') === t);
-            if (novs.length) parts.push(`\n*Novedades Turno ${t}*\n` + novs.map(n => `. ${n.areaElemento || 'N/A'} - ${n.nReserva || 'S/R'} - ${n.habitacion || 'S/H'} - ${n.novedad}`).join('\n'));
+            if (novs.length) parts.push(`\n*Novedades Turno ${t}${usuario ? ' ' + usuario : ''}*\n` + novs.map(n => {
+                const d = novedadDate(n) || new Date();
+                const fecha = String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0');
+                const respuesta = (n.comentarios || []).map(c => String(c.text || '').trim()).filter(Boolean).join(' / ');
+                return [fecha, n.nReserva ? `RVA ${n.nReserva}` : '', n.habitacion ? `HAB ${n.habitacion}` : '', n.novedad].filter(Boolean).join(' ')
+                    + ` ${estadoDe(n).toUpperCase()}` + (respuesta ? ` - ${respuesta}` : '');
+            }).join('\n'));
         });
         navigator.clipboard.writeText(parts.join('\n').trim()).then(() => {
             selectedNovedadIds.clear(); 
@@ -682,7 +684,7 @@ export const UI = {
                 "Habitación": n.habitacion || '-',
                 "Novedad": n.novedad || '-',
                 "Notificado a": n.notificadoA || '-',
-                "Estado": n.estado || '-',
+                "Estado": estadoDe(n),
                 "Respuestas": respuestasTexto || 'Sin respuestas'
             };
         });
@@ -710,7 +712,7 @@ export const UI = {
                     <td>${escapeHTML(n.habitacion || '-')}</td>
                     <td>${escapeHTML(n.novedad)}</td>
                     <td>${escapeHTML(n.notificadoA || '-')}</td>
-                    <td>${escapeHTML(n.estado)}</td>
+                    <td>${escapeHTML(estadoDe(n))}</td>
                 </tr>
             `;
         }).join('');
@@ -870,7 +872,9 @@ export const UI = {
     },
 
     calcularTurno() {
+        /* Turnos: Mañana 06:30-15:30 · Tarde 14:30-23:30 · Noche 23:00-07:00.
+           En las horas donde se superponen (14:30-15:30, 23:00-23:30, 06:30-07:00) manda el turno que entra. */
         const now = new Date(), min = now.getHours() * 60 + now.getMinutes();
-        return (min >= 390 && min <= 870) ? 'Mañana' : (min > 870 && min <= 1350) ? 'Tarde' : 'Noche';
+        return (min >= 390 && min < 870) ? 'Mañana' : (min >= 870 && min < 1380) ? 'Tarde' : 'Noche';
     }
 };

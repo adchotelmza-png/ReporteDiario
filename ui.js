@@ -24,6 +24,7 @@ const DRAFT_KEY = 'registro-diario:borrador-novedad';
 const DRAFT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 /* Horas que una novedad "Pendiente" puede estar abierta antes de marcarse como atrasada (editable) */
 const STALE_HOURS = { Urgente: 4, Alta: 12, Media: 24, Baja: 48 };
+const usuarioDe = n => (n.userEmail ? String(n.userEmail).split('@')[0] : 'Sistema');   // nombre real de quien registró la novedad
 const estadoDe = n => n.estado === 'Completado' ? 'Completado' : 'Pendiente';   // los registros viejos "En curso" cuentan como Pendiente
 const novedadDate = n => n.timestamp?.toDate ? n.timestamp.toDate() : null;
 const isStale = n => {
@@ -65,6 +66,7 @@ function abrirModalDetalleMovil(n) {
         <div style="border-top: 1px solid rgba(128,128,128,0.1); padding-top: 0.5rem;">
             <div><strong style="color:var(--color-texto-secundario); font-size:0.8rem; text-transform:uppercase;">Nº Reserva:</strong> ${escapeHTML(n.nReserva || '-')}</div>
             <div style="margin-top: 0.2rem;"><strong style="color:var(--color-texto-secundario); font-size:0.8rem; text-transform:uppercase;">Notificado a:</strong> ${escapeHTML(n.notificadoA || '-')}</div>
+            <div style="margin-top: 0.2rem;"><strong style="color:var(--color-texto-secundario); font-size:0.8rem; text-transform:uppercase;">Registrado por:</strong> ${escapeHTML(usuarioDe(n))}</div>
         </div>
     `;
 
@@ -401,7 +403,7 @@ export const UI = {
                 if (vFechaDesde && dStr < vFechaDesde) return false;
                 if (vFechaHasta && dStr > vFechaHasta) return false;
             }
-            if (vText && ![n.areaElemento, n.nReserva, n.habitacion, n.novedad, n.notificadoA].join(' ').toLowerCase().includes(vText)) return false;
+            if (vText && ![n.areaElemento, n.nReserva, n.habitacion, n.novedad, n.notificadoA, usuarioDe(n)].join(' ').toLowerCase().includes(vText)) return false;
             return true;
         });
         if (resetPage) currentPage = 1;
@@ -417,7 +419,7 @@ export const UI = {
         const novedadesLog = $('novedades-log');
         if (!pageData.length) {
             const msg = currentNovedades.length ? 'Ningún registro coincide con los filtros.' : 'Todavía no hay novedades registradas.';
-            novedadesLog.innerHTML = `<tr class="empty-row"><td colspan="13" style="text-align:center; padding:1.5rem; opacity:0.7;">${msg}</td></tr>`;
+            novedadesLog.innerHTML = `<tr class="empty-row"><td colspan="14" style="text-align:center; padding:1.5rem; opacity:0.7;">${msg}</td></tr>`;
             this.updateSelectAllCheckboxState();
             return this.renderPagination();
         }
@@ -446,6 +448,7 @@ export const UI = {
                 <td class="cell-habitacion">${escapeHTML(n.habitacion || '-')}</td>
                 <td class="cell-novedad" title="${escapeHTML(n.novedad)}">${escapeHTML(n.novedad)}</td>
                 <td class="cell-notificado">${escapeHTML(n.notificadoA || '-')}</td>
+                <td class="cell-usuario">${escapeHTML(usuarioDe(n))}</td>
                 <td class="cell-estado">
                     <select data-id="${n.id}" ${can('estado') ? '' : 'disabled'} class="estado-select ${n.estado==='Completado'?'status-completado':'status-encurso'}" title="${compTit}">
                         <option value="Pendiente" ${n.estado!=='Completado'?'selected':''}>Pendiente</option>
@@ -684,6 +687,7 @@ export const UI = {
                 "Habitación": n.habitacion || '-',
                 "Novedad": n.novedad || '-',
                 "Notificado a": n.notificadoA || '-',
+                "Usuario": usuarioDe(n),
                 "Estado": estadoDe(n),
                 "Respuestas": respuestasTexto || 'Sin respuestas'
             };
@@ -712,6 +716,7 @@ export const UI = {
                     <td>${escapeHTML(n.habitacion || '-')}</td>
                     <td>${escapeHTML(n.novedad)}</td>
                     <td>${escapeHTML(n.notificadoA || '-')}</td>
+                    <td>${escapeHTML(usuarioDe(n))}</td>
                     <td>${escapeHTML(estadoDe(n))}</td>
                 </tr>
             `;
@@ -747,6 +752,7 @@ export const UI = {
                             <th>Habit.</th>
                             <th>Novedad</th>
                             <th>Notificado a</th>
+                            <th>Usuario</th>
                             <th>Estado</th>
                         </tr>
                     </thead>

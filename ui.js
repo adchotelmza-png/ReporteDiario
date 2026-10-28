@@ -1,8 +1,10 @@
 /* =====================================================================
    ui.js — Interfaz de usuario, accesibilidad y alarmas
    ===================================================================== */
-import { FirebaseService } from './firebase-service.js';
+import { FirebaseService, PERMISOS } from './firebase-service.js';
+import { AdminPanel } from './admin.js';
 
+const can = p => FirebaseService.can(p);
 const $= id => document.getElementById(id); const $$ = s => document.querySelectorAll(s);
 const toLocalISODate = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const escapeHTML = str => !str ? '' : String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
@@ -32,6 +34,8 @@ const formatAge = ms => { const h = Math.floor(ms / 36e5); return h < 48 ? `${Ma
 
 const multiselectOptions = ['Mantenimiento', 'HSKP', 'ReservasHA', 'ReservasHE', 'Front', 'Jefe Recepción', 'Seguridad', 'Parking', 'A.Públicas', 'Piscina', 'GerenciaO', 'GerenciaD'];
 const LOGIN_ERRORS = {
+    'app/invalid-credential': 'Usuario o clave incorrectos.',
+    'permission-denied': 'Sin permiso en Firestore: revisa las reglas de seguridad (ver instrucciones).',
     'auth/invalid-credential': 'Clave o email incorrectos.', 'auth/wrong-password': 'Clave o email incorrectos.',
     'auth/user-not-found': 'Clave o email incorrectos.', 'auth/invalid-email': 'El email no es válido.',
     'auth/too-many-requests': 'Demasiados intentos. Espera unos minutos e inténtalo de nuevo.',
@@ -92,6 +96,7 @@ export const UI = {
         this.setupDatePickers();
         this.setupEventListeners();
         this.populateMultiselect();
+        AdminPanel.init(this);
     },
 
     /* ---------- Calendario nativo: se abre al hacer clic en cualquier parte del campo ---------- */
@@ -205,8 +210,8 @@ export const UI = {
             if (modal) this.closeModal(modal);
         }));
 
-        $('login-button').addEventListener('click', () => this.handleLogin());$('logout-button').addEventListener('click', () => { this.clearDraft(); FirebaseService.logout(); });
-        ['login-email', 'login-password'].forEach(id => $(id).addEventListener('keydown', e => {
+        $('login-button').addEventListener('click', () => this.handleLogin());$('logout-button').addEventListener('click', async () => { this.clearDraft(); await FirebaseService.logout(); this.onAuthError(); });
+        ['login-usuario', 'login-password'].forEach(id => $(id).addEventListener('keydown', e => {
             if (e.key === 'Enter') { e.preventDefault(); this.handleLogin(); }
         }));
 
@@ -262,6 +267,7 @@ export const UI = {
         });
 
         $('confirm-delete-btn').addEventListener('click', async e => {
+            if (!can('borrar')) return this.closeModal($('confirm-modal'));
             const id = e.currentTarget.dataset.id;
             try {
                 await FirebaseService.deleteNovedad(id);
@@ -290,7 +296,7 @@ export const UI = {
         $('reminder-type').addEventListener('change', () => this.syncReminderFields());
         $('reminder-form').addEventListener('submit', e => this.handleReminderSubmit(e));$('active-alarms-list').addEventListener('click', async e => {
             const btn = e.target.closest('.delete-alarm-btn');
-            if (!btn) return;
+            if (!btn || !can('alarmas')) return;
             try { await FirebaseService.deleteAlarm(btn.dataset.id); }
             catch (err) { this.showMessage('Error', 'No se pudo eliminar la alarma: ' + err.message); }
         });
@@ -305,22 +311,30 @@ export const UI = {
     },
 
     async handleLogin() {
-        const btn = $('login-button'), errEl =$('login-error');
+        const btn = $('login-button'), errEl = $('login-error');
         if (btn.disabled) return;
-        const email = $('login-email').value.trim(), pass =$('login-password').value;
+        const usuario = $('login-usuario').value.trim(), pass = $('login-password').value;
         errEl.classList.add('hidden');
-        if (!email || !pass) { errEl.textContent = 'Introduce tu email y tu clave.'; return errEl.classList.remove('hidden'); }
+        if (!usuario || !pass) { errEl.textContent = 'Introduce tu usuario y tu clave.'; return errEl.classList.remove('hidden'); }
         btn.disabled = true;
-        try { await FirebaseService.login(email, pass); }
+        try { this.onAuthSuccess(await FirebaseService.login(usuario, pass)); }
         catch (err) {
-            errEl.textContent = LOGIN_ERRORS[err.code] || 'Error de acceso';
+            errEl.textContent = LOGIN_ERRORS[err.code] || ('Error de acceso: ' + err.message);
             errEl.classList.remove('hidden');
         } finally { btn.disabled = false; }
     },
 
-    onAuthSuccess() {
+    /* ---------- Permisos de la categoría del usuario ---------- */
+    applyPermissions(session) {
+        const cl = document.body.classList;
+        cl.toggle('is-admin', !!session?.esAdmin);
+        PERMISOS.forEach(p => cl.toggle(`perm-no-${p.k}`, !(session && (session.esAdmin || session.permisos?.[p.k] === true))));
+    },
+
+    onAuthSuccess(session) {
+        this.applyPermissions(session);
         $('login-overlay').classList.add('hidden');$('main-content').classList.remove('hidden');
-        $('user-info').innerHTML = '<strong>Conectado</strong>';$('user-info').className = 'user-info-badge status-connected';
+        $('user-info').innerHTML = `<strong>${escapeHTML(session.nombre)}</strong>&nbsp;·&nbsp;${escapeHTML(session.rolNombre)}`;$('user-info').className = 'user-info-badge status-connected';
         FirebaseService.listenNovedades(
             items => this.onNovedadesUpdate(items),
             err => this.showMessage('Error', 'No se pudieron cargar los registros: ' + err.message));
@@ -336,16 +350,18 @@ export const UI = {
     onAuthError() {
         this.resetSession();
         $('login-overlay').classList.remove('hidden');$('main-content').classList.add('hidden');
-        $('user-info').innerHTML = '<strong>Error</strong>';$('user-info').className = 'user-info-badge status-error';
+        $('user-info').innerHTML = '<strong>Sin sesión</strong>';$('user-info').className = 'user-info-badge status-error';
     },
 
     onInitError(err) {
         console.error(err);
-        $('login-error').textContent = 'No se pudo iniciar la aplicación: ' + err.message;
+        const ayuda = { 'auth/admin-restricted-operation': ' Activa el acceso "Anónimo" en Firebase > Authentication > Sign-in method.', 'auth/operation-not-allowed': ' Activa el acceso "Anónimo" en Firebase > Authentication > Sign-in method.', 'permission-denied': ' Revisa las reglas de Firestore (ver instrucciones).' }[err.code] || '';
+        $('login-error').textContent = 'No se pudo iniciar la aplicación: ' + err.message + ayuda;
         $('login-error').classList.remove('hidden');
     },
 
     resetSession() {
+        this.applyPermissions(null); document.body.classList.remove('is-admin');
         clearInterval(alarmInterval); clearInterval(agingInterval); staleOnly = false;
         $('summary-bar').innerHTML = '';
         currentNovedades = []; filteredNovedades = []; currentAlarms = [];
@@ -432,7 +448,7 @@ export const UI = {
                 <td class="cell-novedad" title="${escapeHTML(n.novedad)}">${escapeHTML(n.novedad)}</td>
                 <td class="cell-notificado">${escapeHTML(n.notificadoA || '-')}</td>
                 <td class="cell-estado">
-                    <select data-id="${n.id}" class="estado-select ${n.estado==='Completado'?'status-completado':'status-encurso'}" title="${compTit}">
+                    <select data-id="${n.id}" ${can('estado') ? '' : 'disabled'} class="estado-select ${n.estado==='Completado'?'status-completado':'status-encurso'}" title="${compTit}">
                         <option value="En curso" ${n.estado!=='Completado'?'selected':''}>En curso</option>
                         <option value="Completado" ${n.estado==='Completado'?'selected':''}>Completado</option>
                     </select>
@@ -506,6 +522,7 @@ export const UI = {
             this.updateWhatsappButton();
             this.updateSelectAllCheckboxState();
         } else if (e.target.classList.contains('estado-select')) {
+            if (!can('estado')) return this.applyFiltersAndRender(false);
             FirebaseService.changeEstadoNovedad(e.target.dataset.id, e.target.value).catch(err => {
                 this.showMessage('Error', 'No se pudo cambiar el estado: ' + err.message);
                 this.applyFiltersAndRender(false);
@@ -514,6 +531,7 @@ export const UI = {
     },
 
     async handleMobileEstado(e) {
+        if (!(can('estado'))) return;
         const id = e.currentTarget.dataset.id, n = allNovedadesMap.get(id);
         this.closeModal($('mobile-detail-modal'));
         if (!n) return;
@@ -522,6 +540,7 @@ export const UI = {
     },
 
     openNovedadModal(novedad = null) {
+        if (!can(novedad ? 'editar' : 'crear')) return;
         $('novedad-form').reset();
         this.resetMultiselect();
         if (novedad) {
@@ -546,6 +565,7 @@ export const UI = {
 
     async handleNovedadSubmit(e) {
         e.preventDefault();
+        if (!can($('novedad-id').value ? 'editar' : 'crear')) return this.showMessage('Sin permiso', 'Tu categoría no puede realizar esta acción.');
         $('submit-button').disabled = true;
         $('loading-spinner').classList.remove('hidden');
         const fd = new FormData($('novedad-form')); const payload = { prioridad: fd.get('prioridad').trim(), nReserva: fd.get('nReserva').trim() || null, habitacion: fd.get('habitacion').trim() || null, areaElemento: fd.get('areaElemento').trim(), novedad: fd.get('novedad').trim(), notificadoA: Array.from($$('.multiselect-option:checked')).map(cb => cb.value).join(', ') || null
@@ -579,6 +599,7 @@ export const UI = {
 
     async handleCommentSubmit(e) {
         e.preventDefault();
+        if (!can('comentar')) return;
         const text = $('new-comment-text').value.trim();
         if (!text) return;
         const btn = $('save-comment-btn');
@@ -589,6 +610,7 @@ export const UI = {
     },
 
     async handleDeleteAll() {
+        if (!can('borrarTodo')) return;
         const pwd = window.APP_CONFIG?.DELETE_ALL_PASSWORD, errEl = $('delete-all-error');
         if (!pwd) { errEl.textContent = 'No hay clave configurada (revisa config.js).'; return errEl.classList.remove('hidden'); }
         if ($('delete-all-password').value !== pwd) { errEl.textContent = 'La clave es incorrecta.'; return errEl.classList.remove('hidden'); }
@@ -626,6 +648,7 @@ export const UI = {
     },
 
     copyWhatsapp() {
+        if (!can('whatsapp')) return;
         const parts = [];
         ['Mañana', 'Tarde', 'Noche', 'Sin Turno'].forEach(t => {
             const novs = Array.from(selectedNovedadIds).map(id => allNovedadesMap.get(id)).filter(n => n && (n.turno || 'Sin Turno') === t);
@@ -640,6 +663,7 @@ export const UI = {
     },
 
     exportExcel() {
+        if (!can('excel')) return;
         if (typeof XLSX === 'undefined') return this.showMessage('Error', 'La librería para generar el Excel no se ha cargado.');
         const dataToExport = filteredNovedades.map(n => {
             const d = n.timestamp?.toDate ? n.timestamp.toDate() : new Date();
@@ -669,6 +693,7 @@ export const UI = {
     },
 
     exportPDF() {
+        if (!can('pdf')) return;
         if (!filteredNovedades.length) return this.showMessage('Aviso', 'No hay registros visibles para exportar.');
         const printWindow = window.open('', '_blank');
         if (!printWindow) return this.showMessage('Error', 'El navegador bloqueó la ventana emergente para generar el reporte.');
@@ -746,6 +771,7 @@ export const UI = {
 
     async handleReminderSubmit(e) {
         e.preventDefault();
+        if (!can('alarmas')) return;
         const type = $('reminder-type').value;
         let monthDays = $('reminder-month-days').value;
         if (type === 'once' && !$('reminder-date').value) return this.showMessage('Alarma', 'Elige la fecha de la alarma.');

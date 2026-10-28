@@ -65,6 +65,38 @@
         .btn-massive-add:hover { transform: translateY(-4px); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25), 0 10px 10px -5px rgba(0, 0, 0, 0.15); filter: brightness(1.05); }
         .btn-massive-add:active { transform: translateY(0); }
         .btn-massive-add svg { width: 3rem; height: 3rem; stroke-width: 2.5; }
+
+        /* --- Permisos por categoría: la clase perm-no-X se pone en <body> al iniciar sesión --- */
+        .perm-no-crear .top-dashboard-grid > div:has(#open-add-modal-btn) { display: none; }
+        .perm-no-editar .cell-edit, .perm-no-editar .novedades-table th:nth-child(12), .perm-no-editar #mobile-btn-editar { display: none; }
+        .perm-no-borrar .cell-delete, .perm-no-borrar .novedades-table th:nth-child(13), .perm-no-borrar #mobile-btn-borrar { display: none; }
+        .perm-no-estado #mobile-btn-estado { display: none; }
+        .perm-no-comentar #add-comment-form { display: none; }
+        .perm-no-alarmas #open-reminder-modal-btn { display: none !important; }
+        .perm-no-alarmas #reminder-form, .perm-no-alarmas .delete-alarm-btn { display: none; }
+        .perm-no-whatsapp .cell-checkbox, .perm-no-whatsapp .novedades-table th:nth-child(1), .perm-no-whatsapp #whatsapp-copy-button { display: none; }
+        .perm-no-excel #export-button, .perm-no-pdf #export-pdf-button, .perm-no-borrarTodo #delete-all-btn { display: none; }
+
+        /* --- Módulo de administración --- */
+        #open-admin-btn { display: none; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 0.8rem; font-size: 0.85rem; margin: 0; }
+        .is-admin #open-admin-btn { display: inline-flex; }
+        .admin-tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; border-bottom: 1px solid rgba(128,128,128,0.25); }
+        .admin-tabs button { background: none; border: none; border-bottom: 3px solid transparent; color: inherit; opacity: 0.7; padding: 0.5rem 1rem; font-size: 0.95rem; font-weight: 600; cursor: pointer; }
+        .admin-tabs button.is-active { border-bottom-color: #FA780C; opacity: 1; }
+        .admin-scroll { overflow-x: auto; margin-bottom: 1.25rem; }
+        .admin-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        .admin-table th, .admin-table td { padding: 0.5rem 0.6rem; text-align: left; border-bottom: 1px solid rgba(128,128,128,0.2); white-space: nowrap; }
+        .admin-table th { font-size: 0.75rem; text-transform: uppercase; opacity: 0.7; }
+        .admin-actions { display: flex; gap: 0.4rem; justify-content: flex-end; }
+        .admin-actions .button { padding: 0.25rem 0.6rem; font-size: 0.8rem; }
+        .admin-form { border-top: 1px solid rgba(128,128,128,0.25); padding-top: 1rem; }
+        .admin-form h4 { margin: 0 0 0.75rem; font-size: 1rem; }
+        .admin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0.75rem; }
+        .admin-form-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem; }
+        .admin-perms { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 0.4rem 1rem; }
+        .admin-perm { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; cursor: pointer; }
+        .admin-hint { font-size: 0.8rem; opacity: 0.7; margin-top: 0.75rem; }
+        .admin-empty { text-align: center; opacity: 0.7; padding: 1rem; }
     </style>
     <link rel="stylesheet" href="responsive.css">
     <link rel="icon" type="image/png" href="Icono.png">
@@ -74,17 +106,17 @@
     <div id="login-overlay" class="login-overlay">
         <div class="login-container card">
             <h2 class="login-title">Iniciar Sesión</h2>
-            <p class="login-subtitle">Introduce tu correo y clave de acceso.</p>
+            <p class="login-subtitle">Introduce tu usuario y clave de acceso.</p>
             <div class="login-form">
                 <div class="form-group">
-                    <label for="login-email" class="form-label">Email</label>
-                    <input type="email" id="login-email" class="form-input" autocomplete="username" inputmode="email" placeholder="tu@email.com">
+                    <label for="login-usuario" class="form-label">Usuario</label>
+                    <input type="text" id="login-usuario" class="form-input" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Tu usuario">
                 </div>
                 <div class="form-group">
                     <label for="login-password" class="form-label">Clave</label>
                     <input type="password" id="login-password" class="form-input" autocomplete="current-password" placeholder="••••••••">
                 </div>
-                <p id="login-error" class="form-error hidden">Clave o email incorrectos.</p>
+                <p id="login-error" class="form-error hidden">Usuario o clave incorrectos.</p>
                 <button id="login-button" class="button button-primary button-full-width">
                     Entrar
                 </button>
@@ -103,6 +135,10 @@
                     <div id="user-info" class="user-info-badge status-loading">
                         Cargando usuario...
                     </div>
+                    <button id="open-admin-btn" type="button" class="button button-secondary" title="Administrar usuarios y categorías">
+                        <svg class="icon" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" style="width: 16px; height: 16px;"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zm8 0a3 3 0 11-6 0 3 3 0 016 0zM1.5 16.5a6 6 0 0112 0v.5h-12v-.5zm11.5.5v-.5a7.5 7.5 0 00-1.2-4.05A6 6 0 0119 16.5v.5h-6z"></path></svg>
+                        Administración
+                    </button>
                     <button id="open-reminder-modal-btn" class="button button-orange hidden">
                         <svg class="icon" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" style="width: 16px; height: 16px;"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"></path></svg>
                         Crear Alarma
@@ -492,6 +528,34 @@
         </div>
     </div>
 
+    <div id="admin-gate-modal" class="modal-overlay hidden" style="z-index: 10003;">
+        <div class="modal-container card">
+            <h3 class="modal-title">Administración</h3>
+            <p class="modal-content">Ingresa la clave del Admin para continuar.</p>
+            <input type="password" id="admin-gate-password" class="modal-password-input" placeholder="Clave del Admin" autocomplete="off">
+            <p id="admin-gate-error" class="modal-error-message hidden">La clave es incorrecta.</p>
+            <div class="modal-actions">
+                <button type="button" class="button button-gray btn-cerrar-modal">Cancelar</button>
+                <button type="button" id="admin-gate-confirm" class="button button-primary">Entrar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="admin-modal" class="modal-overlay hidden" style="z-index: 10002;">
+        <div class="modal-container card" style="max-width: 56rem; width: 95%; max-height: 92vh; overflow-y: auto;">
+            <h3 class="modal-title">Administración de usuarios y categorías</h3>
+            <div id="admin-tabs" class="admin-tabs">
+                <button type="button" data-tab="usuarios" class="is-active">Usuarios</button>
+                <button type="button" data-tab="categorias">Categorías</button>
+            </div>
+            <p id="admin-msg" class="form-error hidden"></p>
+            <div id="admin-body"></div>
+            <div class="modal-actions" style="margin-top: 1rem;">
+                <button type="button" class="button button-primary btn-cerrar-modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         /* Tema claro/oscuro: va en un script clásico para que funcione aunque Firebase no cargue */
         (function () {
@@ -534,7 +598,7 @@
         import { FirebaseService } from './firebase-service.js';
         import { UI } from './ui.js';
         UI.init();
-        FirebaseService.init(user => UI.onAuthSuccess(user), () => UI.onAuthError())
+        FirebaseService.init(session => UI.onAuthSuccess(session), () => UI.onAuthError(), err => UI.onInitError(err))
             .catch(err => UI.onInitError(err));
     </script>
 </body>

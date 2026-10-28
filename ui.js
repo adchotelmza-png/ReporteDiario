@@ -667,18 +667,32 @@ export const UI = {
         /* Todas las novedades seleccionadas, de la más vieja a la más nueva, bajo UN solo título (el turno actual) */
         const novs = Array.from(selectedNovedadIds).map(id => allNovedadesMap.get(id)).filter(Boolean)
             .sort((x, y) => (novedadDate(x) || hoy) - (novedadDate(y) || hoy));
+        /* Cada novedad: [fecha + RVA en negrita] resto. Se arma en partes para poder dar formato en el email. */
         const lineas = novs.map(n => {
             const d = novedadDate(n) || hoy;
             const respuesta = (n.comentarios || []).map(c => String(c.text || '').trim()).filter(Boolean).join(' / ');
-            return [`${dd(d.getDate())}/${dd(d.getMonth() + 1)}`, n.nReserva ? `RVA ${n.nReserva}` : '', n.habitacion ? `HAB ${n.habitacion}` : '', n.novedad].filter(Boolean).join(' ')
+            const negrita = `${dd(d.getDate())}/${dd(d.getMonth() + 1)}${n.nReserva ? ' RVA' : ''}`;
+            const resto = [n.nReserva || '', n.habitacion ? `HAB ${n.habitacion}` : '', n.novedad].filter(Boolean).join(' ')
                 + ` ${estadoDe(n).toUpperCase()}` + (respuesta ? ` - ${respuesta}` : '');
+            return { negrita, resto };
         });
-        const parts = [`*Novedades Turno ${this.calcularTurno()} ${fechaHoy}${usuario ? ' - ' + usuario : ''}*`, ...lineas];
-        navigator.clipboard.writeText(parts.join('\n').trim()).then(() => {
+        const titulo = `Novedades Turno ${this.calcularTurno()} ${fechaHoy}${usuario ? ' - ' + usuario : ''}`;
+        /* Se copia como texto enriquecido para Outlook/Word: título y "fecha RVA" en negrita, una viñeta (•) por novedad */
+        const conBr = t => escapeHTML(t).replace(/\n/g, '<br>');
+        const html = `<div style="font-family:Calibri,Arial,sans-serif;font-size:11pt;">`
+            + `<p style="margin:0 0 6pt 0;"><b>${escapeHTML(titulo)}</b></p>`
+            + `<ul style="margin-top:0;margin-bottom:0;">`
+            + lineas.map(l => `<li style="margin-bottom:3pt;"><b>${escapeHTML(l.negrita)}</b> ${conBr(l.resto)}</li>`).join('')
+            + `</ul></div>`;
+        const texto = [titulo, ...lineas.map(l => `• ${l.negrita} ${l.resto}`)].join('\n');
+        const copiar = (window.ClipboardItem && navigator.clipboard.write)
+            ? navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([texto], { type: 'text/plain' }) })])
+            : navigator.clipboard.writeText(texto);
+        copiar.then(() => {
             selectedNovedadIds.clear(); 
             this.updateWhatsappButton(); 
             this.applyFiltersAndRender(false);
-            this.showMessage('Éxito', 'Copiado a portapapeles.');
+            this.showMessage('Éxito', 'Reporte copiado. Pegalo en tu email.');
         }).catch(() => this.showMessage('Error', 'No se pudo copiar.'));
     },
 

@@ -281,7 +281,7 @@ export const UI = {
         });
 
         $('add-comment-form').addEventListener('submit', e => this.handleCommentSubmit(e));$('export-button').addEventListener('click', () => this.exportExcel());
-        $('export-pdf-button').addEventListener('click', () => this.exportPDF());$('whatsapp-copy-button').addEventListener('click', () => this.copyWhatsapp());
+        $('export-pdf-button').addEventListener('click', () => this.exportPDF());$('whatsapp-copy-button').addEventListener('click', () => this.copyWhatsapp());$('shift-handover-btn').addEventListener('click', () => this.selectPendientes());
 
         $('delete-all-btn').addEventListener('click', () => {
             if (!can('borrarTodo')) return;
@@ -646,19 +646,34 @@ export const UI = {
         btn.innerHTML = `${WHATSAPP_ICON} Whatsapp (${selectedNovedadIds.size})`;
     },
 
+    /* Traspaso de turno: muestra y selecciona TODAS las novedades pendientes (sin importar fecha ni turno) */
+    selectPendientes() {
+        if (!can('whatsapp')) return;
+        ['turno', 'fecha-desde', 'fecha-hasta', 'prioridad', 'text'].forEach(id => $(`filter-${id}`).value = '');
+        $('filter-estado').value = 'Pendiente'; staleOnly = false;
+        this.applyFiltersAndRender();
+        selectedNovedadIds.clear();
+        filteredNovedades.forEach(n => selectedNovedadIds.add(n.id));
+        this.updateWhatsappButton();
+        this.applyFiltersAndRender(false);
+        if (!selectedNovedadIds.size) this.showMessage('Traspaso de turno', 'No hay novedades pendientes.');
+    },
+
     copyWhatsapp() {
         if (!can('whatsapp')) return;
-        const parts = [], usuario = FirebaseService.session?.nombre || '';
-        ['Mañana', 'Tarde', 'Noche', 'Sin Turno'].forEach(t => {
-            const novs = Array.from(selectedNovedadIds).map(id => allNovedadesMap.get(id)).filter(n => n && (n.turno || 'Sin Turno') === t);
-            if (novs.length) parts.push(`\n*Novedades Turno ${t}${usuario ? ' ' + usuario : ''}*\n` + novs.map(n => {
-                const d = novedadDate(n) || new Date();
-                const fecha = String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0');
-                const respuesta = (n.comentarios || []).map(c => String(c.text || '').trim()).filter(Boolean).join(' / ');
-                return [fecha, n.nReserva ? `RVA ${n.nReserva}` : '', n.habitacion ? `HAB ${n.habitacion}` : '', n.novedad].filter(Boolean).join(' ')
-                    + ` ${estadoDe(n).toUpperCase()}` + (respuesta ? ` - ${respuesta}` : '');
-            }).join('\n'));
+        const usuario = FirebaseService.session?.nombre || '', hoy = new Date();
+        const dd = x => String(x).padStart(2, '0');
+        const fechaHoy = `${dd(hoy.getDate())}/${dd(hoy.getMonth() + 1)}/${hoy.getFullYear()}`;
+        /* Todas las novedades seleccionadas, de la más vieja a la más nueva, bajo UN solo título (el turno actual) */
+        const novs = Array.from(selectedNovedadIds).map(id => allNovedadesMap.get(id)).filter(Boolean)
+            .sort((x, y) => (novedadDate(x) || hoy) - (novedadDate(y) || hoy));
+        const lineas = novs.map(n => {
+            const d = novedadDate(n) || hoy;
+            const respuesta = (n.comentarios || []).map(c => String(c.text || '').trim()).filter(Boolean).join(' / ');
+            return [`${dd(d.getDate())}/${dd(d.getMonth() + 1)}`, n.nReserva ? `RVA ${n.nReserva}` : '', n.habitacion ? `HAB ${n.habitacion}` : '', n.novedad].filter(Boolean).join(' ')
+                + ` ${estadoDe(n).toUpperCase()}` + (respuesta ? ` - ${respuesta}` : '');
         });
+        const parts = [`*Novedades Turno ${this.calcularTurno()} ${fechaHoy}${usuario ? ' - ' + usuario : ''}*`, ...lineas];
         navigator.clipboard.writeText(parts.join('\n').trim()).then(() => {
             selectedNovedadIds.clear(); 
             this.updateWhatsappButton(); 

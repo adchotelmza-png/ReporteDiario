@@ -81,6 +81,11 @@
         #open-admin-btn { display: none; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 0.8rem; font-size: 0.85rem; margin: 0; }
         .is-admin #open-admin-btn { display: inline-flex; }
         #open-admin-btn[hidden] { display: none !important; }
+
+        /* --- Botón Cerrar sesión: rojo con letras blancas en tema claro y oscuro (solo color, mismo tamaño) --- */
+        #logout-button, #logout-button:visited { background: #dc2626 !important; border-color: #dc2626 !important; color: #fff !important; }
+        #logout-button:hover, #logout-button:focus-visible { background: #b91c1c !important; border-color: #b91c1c !important; color: #fff !important; }
+        #logout-button svg { color: #fff !important; }
         .admin-tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; border-bottom: 1px solid rgba(128,128,128,0.25); }
         .admin-tabs button { background: none; border: none; border-bottom: 3px solid transparent; color: inherit; opacity: 0.7; padding: 0.5rem 1rem; font-size: 0.95rem; font-weight: 600; cursor: pointer; }
         .admin-tabs button.is-active { border-bottom-color: #FA780C; opacity: 1; }

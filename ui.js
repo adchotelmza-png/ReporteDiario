@@ -448,7 +448,6 @@ export const UI = {
                 <td class="cell-habitacion">${escapeHTML(n.habitacion || '-')}</td>
                 <td class="cell-novedad" title="${escapeHTML(n.novedad)}">${escapeHTML(n.novedad)}</td>
                 <td class="cell-notificado">${escapeHTML(n.notificadoA || '-')}</td>
-                <td class="cell-usuario">${escapeHTML(usuarioDe(n))}</td>
                 <td class="cell-estado">
                     <select data-id="${n.id}" ${can('estado') ? '' : 'disabled'} class="estado-select ${n.estado==='Completado'?'status-completado':'status-encurso'}" title="${compTit}">
                         <option value="Pendiente" ${n.estado!=='Completado'?'selected':''}>Pendiente</option>
@@ -467,6 +466,7 @@ export const UI = {
                 <td class="cell-delete">
                     <button data-id="${n.id}" class="button-icon delete-novedad-btn" title="Borrar"><svg class="icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75V4.5h8V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4.5A1.25 1.25 0 0111.25 3h2.5A1.25 1.25 0 0115 4.25V5.5h-5V4.25zM3.75 6A1.75 1.75 0 002 7.75v7.5A1.75 1.75 0 003.75 17h12.5A1.75 1.75 0 0018 15.25v-7.5A1.75 1.75 0 0016.25 6H3.75zM10 10a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 10zM13 10a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0113 10zM7 10a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 017 10z" clip-rule="evenodd"/></svg></button>
                 </td>
+                <td class="cell-usuario">${escapeHTML(usuarioDe(n))}</td>
             </tr>`;
         }).join('');
         this.updateSelectAllCheckboxState();

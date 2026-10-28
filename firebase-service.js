@@ -29,7 +29,7 @@ export const PERMISOS = [
     { k: 'estado',     label: 'Cambiar estado (En curso / Completado)' },
     { k: 'comentar',   label: 'Responder / comentar' },
     { k: 'alarmas',    label: 'Crear y borrar alarmas' },
-    { k: 'whatsapp',   label: 'Copiar para WhatsApp' },
+    { k: 'whatsapp',   label: 'Generar reporte (botón Reporte)' },
     { k: 'excel',      label: 'Exportar a Excel' },
     { k: 'pdf',        label: 'Exportar PDF / Imprimir' },
     { k: 'borrarTodo', label: 'Borrar TODOS los registros' }
@@ -182,7 +182,7 @@ export const FirebaseService = {
             const configRef = doc(db, getPath('hotel_config'), 'categorias');
             const snap = await getDocs(collection(db, getPath('hotel_config')));
             if (snap.empty) {
-                const options = ['Mantenimiento', 'HSKP', 'Front', 'Jefe Recepción', 'Parking', 'Gerencia', 'Reservas', 'Administración', 'Spa', 'Restaurante'];
+                const options = ['Mantenimiento', 'HSKP', 'Front', 'Jefe Recepción', 'Gerencia', 'Reservas', 'Administración', 'Spa', 'Restaurante'];
                 await setDoc(configRef, { options, creadoEn: serverTimestamp() });
             }
         } catch (e) { console.error(e); }

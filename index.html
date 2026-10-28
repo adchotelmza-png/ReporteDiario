@@ -249,7 +249,7 @@
                         <svg class="icon" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                             <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7.973 1.127l-2.76-2.76a1 1 0 00-1.53.136l-.37.986 1.83 4.956 4.956 1.83.986-.37a1 1 0 00.136-1.53l-2.76-2.76z" clip-rule="evenodd"></path>
                         </svg>
-                        Whatsapp (0)
+                        Reporte (0)
                     </button>
                     <button id="shift-handover-btn" type="button" class="button button-secondary" title="Selecciona todas las novedades pendientes para el reporte">
                         <svg class="icon" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.1a8 8 0 0114.9 2.9 1 1 0 11-1.9.6A6 6 0 006.4 7H9a1 1 0 110 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm12 16a1 1 0 01-1-1v-2.1A8 8 0 011.1 12a1 1 0 111.9-.6A6 6 0 0013.6 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 01-1 1z" clip-rule="evenodd" transform="translate(0 -0.5)"/></svg>
@@ -604,7 +604,7 @@
 
     <script type="module">
         import { FirebaseService } from './firebase-service.js';
-        import { UI } from './ui.js?v=20261028c';
+        import { UI } from './ui.js?v=20261028d';
         UI.init();
         FirebaseService.init(session => UI.onAuthSuccess(session), () => UI.onAuthError(), err => UI.onInitError(err))
             .catch(err => UI.onInitError(err));

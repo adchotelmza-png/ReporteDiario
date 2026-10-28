@@ -34,7 +34,7 @@ const isStale = n => {
 };
 const formatAge = ms => { const h = Math.floor(ms / 36e5); return h < 48 ? `${Math.max(h, 1)} h` : `${Math.floor(h / 24)} d`; };
 
-const multiselectOptions = ['Mantenimiento', 'HSKP', 'Front', 'Jefe Recepción', 'Parking', 'Gerencia', 'Reservas', 'Administración', 'Spa', 'Restaurante'];
+const multiselectOptions = ['Mantenimiento', 'HSKP', 'Front', 'Jefe Recepción', 'Gerencia', 'Reservas', 'Administración', 'Spa', 'Restaurante'];
 const LOGIN_ERRORS = {
     'app/invalid-credential': 'Usuario o clave incorrectos.',
     'permission-denied': 'Sin permiso en Firestore: revisa las reglas de seguridad (ver instrucciones).',
@@ -643,7 +643,7 @@ export const UI = {
     updateWhatsappButton() {
         const btn = $('whatsapp-copy-button');
         btn.disabled = !selectedNovedadIds.size;
-        btn.innerHTML = `${WHATSAPP_ICON} Whatsapp (${selectedNovedadIds.size})`;
+        btn.innerHTML = `${WHATSAPP_ICON} Reporte (${selectedNovedadIds.size})`;
     },
 
     /* Traspaso de turno: muestra y selecciona TODAS las novedades pendientes (sin importar fecha ni turno) */

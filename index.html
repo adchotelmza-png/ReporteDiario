@@ -102,13 +102,13 @@
         #tsb .tsb-thumb { position: absolute; left: 0; top: 0; height: 100%; border-radius: 999px; background: var(--tsb-thumb); transition: background .15s ease; will-change: transform; }
         #tsb:hover .tsb-thumb, #tsb.is-dragging .tsb-thumb, #tsb:focus-visible .tsb-thumb { background: var(--tsb-thumb-hover); }
 
-        /* ===== Estado como botón de color (un clic alterna Pendiente / Completado) ===== */
+        /* ===== Estado como botón de color (un clic alterna Pendiente / Resuelto) ===== */
         .estado-pill { display: inline-flex; align-items: center; gap: 6px; padding: .28rem .7rem; border-radius: 999px; font: inherit; font-size: .82rem; font-weight: 700; line-height: 1.2; border: 1px solid transparent; cursor: pointer; white-space: nowrap; transition: filter .15s, transform .1s, box-shadow .15s; }
         .estado-pill .estado-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: none; }
         .estado-pill.is-pendiente { background: rgba(245,158,11,.18); color: #b45309; border-color: rgba(245,158,11,.55); }
-        .estado-pill.is-completado { background: rgba(16,185,129,.18); color: #047857; border-color: rgba(16,185,129,.55); }
+        .estado-pill.is-Resuelto { background: rgba(16,185,129,.18); color: #047857; border-color: rgba(16,185,129,.55); }
         [data-theme="dark"] .estado-pill.is-pendiente { color: #fbbf24; }
-        [data-theme="dark"] .estado-pill.is-completado { color: #34d399; }
+        [data-theme="dark"] .estado-pill.is-Resuelto { color: #34d399; }
         .estado-pill:not(:disabled):hover { filter: brightness(1.12); box-shadow: 0 0 0 3px rgba(128,128,128,.2); }
         .estado-pill:not(:disabled):active { transform: scale(.96); }
         .estado-pill:focus-visible { outline: 2px solid #0891b2; outline-offset: 2px; }
@@ -331,7 +331,7 @@
                         <select id="filter-estado" class="form-select" style="padding: 0.4rem; font-size: 0.9rem;">
                             <option value="">Todos</option>
                             <option value="Pendiente">Pendiente</option>
-                            <option value="Completado">Completado</option>
+                            <option value="Resuelto">Resuelto</option>
                         </select>
                     </div>
                     <div class="form-group form-group-full">

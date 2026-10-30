@@ -241,6 +241,20 @@
                         </select>
                     </div>
                     <div class="form-group">
+                        <label for="filter-area" class="form-label" style="font-size: 0.8rem;">Área/Elemento</label>
+                        <select id="filter-area" class="form-select" style="padding: 0.4rem; font-size: 0.9rem;">
+                            <option value="">Todas</option>
+                            <option value="Recepción">Recepción</option>
+                            <option value="HSKP">HSKP</option>
+                            <option value="Mantenimiento">Mantenimiento</option>
+                            <option value="Administración">Administración</option>
+                            <option value="Reservas">Reservas</option>
+                            <option value="Restaurante">Restaurante</option>
+                            <option value="Spa">Spa</option>
+                            <option value="__otros">Otros / sin área</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
                         <label for="filter-estado" class="form-label" style="font-size: 0.8rem;">Estado</label>
                         <select id="filter-estado" class="form-select" style="padding: 0.4rem; font-size: 0.9rem;">
                             <option value="">Todos</option>
@@ -373,7 +387,16 @@
 
                 <div class="form-group">
                     <label for="areaElemento" class="form-label">Área/Elemento (Requerido)</label>
-                    <input type="text" id="areaElemento" name="areaElemento" required class="form-input" placeholder="Ej: Puerta - Mantenimiento">
+                    <select id="areaElemento" name="areaElemento" required class="form-select">
+                        <option value="">Elegí un área...</option>
+                        <option value="Recepción">Recepción</option>
+                        <option value="HSKP">HSKP</option>
+                        <option value="Mantenimiento">Mantenimiento</option>
+                        <option value="Administración">Administración</option>
+                        <option value="Reservas">Reservas</option>
+                        <option value="Restaurante">Restaurante</option>
+                        <option value="Spa">Spa</option>
+                    </select>
                 </div>
 
                 <div class="form-group relative">
@@ -656,7 +679,7 @@
 
     <script type="module">
         import { FirebaseService } from './firebase-service.js';
-        import { UI } from './ui.js?v=20261028l';
+        import { UI } from './ui.js?v=20261030c';
         UI.init();
         FirebaseService.init(session => UI.onAuthSuccess(session), () => UI.onAuthError(), err => UI.onInitError(err))
             .catch(err => UI.onInitError(err));

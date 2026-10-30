@@ -34,6 +34,11 @@ const isStale = n => {
 };
 const formatAge = ms => { const h = Math.floor(ms / 36e5); return h < 48 ? `${Math.max(h, 1)} h` : `${Math.floor(h / 24)} d`; };
 
+/* Áreas/Elementos fijos (el orden de esta lista es el orden en que salen en el reporte) */
+const AREAS = ['Recepción', 'HSKP', 'Mantenimiento', 'Administración', 'Reservas', 'Restaurante', 'Spa'];
+const normTxt = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+/* Devuelve el área oficial de una novedad (aunque se haya escrito antes con otra mayúscula o sin tilde); null si es un valor viejo libre */
+const areaDe = n => AREAS.find(a => normTxt(a) === normTxt(n.areaElemento)) || null;
 const multiselectOptions = ['Mantenimiento', 'HSKP', 'Front', 'Jefe Recepción', 'Gerencia', 'Reservas', 'Administración', 'Spa', 'Restaurante'];
 const LOGIN_ERRORS = {
     'app/invalid-credential': 'Usuario o clave incorrectos.',
@@ -175,7 +180,7 @@ export const UI = {
         try { d = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch (_) { d = null; }
         if (!d || Date.now() - (d.savedAt || 0) > DRAFT_MAX_AGE_MS) { this.clearDraft(); return false; }
         $('prioridad').value = d.prioridad || 'Media'; $('nReserva').value = d.nReserva || '';
-        $('habitacion').value = d.habitacion || ''; $('areaElemento').value = d.areaElemento || '';
+        $('habitacion').value = d.habitacion || ''; this.setAreaValue(d.areaElemento);
         $('novedad').value = d.novedad || '';
         const sel = Array.isArray(d.notificadoA) ? d.notificadoA : [];
         $$('.multiselect-option').forEach(cb => cb.checked = sel.includes(cb.value));
@@ -260,11 +265,11 @@ export const UI = {
 
         $('clear-filters-btn').addEventListener('click', () => {
             staleOnly = false;
-            ['turno', 'fecha-desde', 'fecha-hasta', 'prioridad', 'estado', 'text'].forEach(id => $(`filter-${id}`).value = '');
+            ['turno', 'fecha-desde', 'fecha-hasta', 'prioridad', 'area', 'estado', 'text'].forEach(id => $(`filter-${id}`).value = '');
             this.applyFiltersAndRender();
         });
 
-        ['filter-turno', 'filter-fecha-desde', 'filter-fecha-hasta', 'filter-prioridad', 'filter-estado'].forEach(id =>
+        ['filter-turno', 'filter-fecha-desde', 'filter-fecha-hasta', 'filter-prioridad', 'filter-area', 'filter-estado'].forEach(id =>
             $(id).addEventListener('change', () => { if (id !== 'filter-turno') staleOnly = false; this.applyFiltersAndRender(); }));
 
         /* Resumen clickeable + borrador del formulario */
@@ -425,6 +430,7 @@ export const UI = {
 
     applyFiltersAndRender(resetPage = true) {
         const [vTurno, vPrioridad, vEstado, vText] = ['turno', 'prioridad', 'estado', 'text'].map(id => $(`filter-${id}`).value.toLowerCase().trim());
+        const vArea = $('filter-area').value;
         const vFechaDesde = $('filter-fecha-desde').value;
         const vFechaHasta = $('filter-fecha-hasta').value;
 
@@ -432,6 +438,7 @@ export const UI = {
             if (vTurno && (n.turno || '').toLowerCase() !== vTurno) return false;
             if (vPrioridad && (n.prioridad || '').toLowerCase() !== vPrioridad) return false;
             if (vEstado && estadoDe(n).toLowerCase() !== vEstado) return false;
+            if (vArea && (vArea === '__otros' ? areaDe(n) !== null : areaDe(n) !== vArea)) return false;
             if (staleOnly && !isStale(n)) return false;
             if (vFechaDesde || vFechaHasta) {
                 const d = n.timestamp?.toDate ? n.timestamp.toDate() : null;
@@ -578,6 +585,16 @@ export const UI = {
         catch (err) { this.showMessage('Error', 'No se pudo cambiar el estado: ' + err.message); }
     },
 
+    /* Selecciona un área en el formulario. Si es un valor viejo (texto libre), se agrega como opción para no perderlo al editar */
+    setAreaValue(v) {
+        const sel = $('areaElemento'), val = String(v || '').trim();
+        Array.from(sel.querySelectorAll('option[data-legacy]')).forEach(o => o.remove());
+        const oficial = AREAS.find(a => normTxt(a) === normTxt(val));
+        if (oficial) { sel.value = oficial; return; }
+        if (val) { const o = new Option(`${val} (anterior)`, val); o.dataset.legacy = '1'; sel.add(o); sel.value = val; }
+        else sel.value = '';
+    },
+
     openNovedadModal(novedad = null) {
         if (!can(novedad ? 'editar' : 'crear')) return;
         $('novedad-form').reset();
@@ -585,7 +602,7 @@ export const UI = {
         if (novedad) {
             $('novedad-modal-title').textContent = 'Editar Novedad';$('novedad-id').value = novedad.id;
             $('prioridad').value = novedad.prioridad || 'Media';$('nReserva').value = novedad.nReserva || '';
-            $('habitacion').value = novedad.habitacion || '';$('areaElemento').value = novedad.areaElemento || '';
+            $('habitacion').value = novedad.habitacion || '';this.setAreaValue(novedad.areaElemento);
             $('novedad').value = novedad.novedad || '';$('current-shift').textContent = novedad.turno || '--:--';
             $('novedad-metadata').classList.remove('hidden');$('novedad-metadata').textContent = `Creado por: ${novedad.userEmail || '--'} el ${formatFullTimestamp(novedad.timestamp?.toDate?.())}`;
             $('draft-notice').classList.add('hidden');
@@ -766,33 +783,43 @@ export const UI = {
         const usuario = FirebaseService.session?.nombre || '', hoy = new Date();
         const dd = x => String(x).padStart(2, '0');
         const fechaHoy = `${dd(hoy.getDate())}/${dd(hoy.getMonth() + 1)}/${hoy.getFullYear()}`;
-        /* Todas las novedades seleccionadas, de la más vieja a la más nueva, bajo UN solo título (el turno actual) */
+        /* Novedades seleccionadas, de la más vieja a la más nueva */
         const novs = Array.from(selectedNovedadIds).map(id => allNovedadesMap.get(id)).filter(Boolean)
             .sort((x, y) => (novedadDate(x) || hoy) - (novedadDate(y) || hoy));
+        /* Se agrupan por Área/Elemento (en el orden de AREAS); los registros viejos con texto libre van al final bajo "Otros" */
+        const grupos = [...AREAS, 'Otros'].map(a => ({ area: a, items: [] }));
+        novs.forEach(n => (grupos.find(g => g.area === (areaDe(n) || 'Otros'))).items.push(n));
         /* Cada novedad: [fecha + RVA en negrita] resto. Se arma en partes para poder dar formato en el email. */
-        const lineas = novs.map(n => {
+        const armarLinea = (n, esOtros) => {
             const d = novedadDate(n) || hoy;
             const respuesta = (n.comentarios || []).map(c => String(c.text || '').trim()).filter(Boolean).join(' / ');
             const negrita = `${dd(d.getDate())}/${dd(d.getMonth() + 1)}${n.nReserva ? ' RVA' : ''}`;
-            const cuerpo = [n.nReserva || '', n.habitacion ? `HAB ${n.habitacion}` : '', n.novedad].filter(Boolean).join(' ');
+            const areaVieja = esOtros && n.areaElemento ? `[${String(n.areaElemento).trim()}]` : '';
+            const cuerpo = [n.nReserva || '', n.habitacion ? `HAB ${n.habitacion}` : '', areaVieja, n.novedad].filter(Boolean).join(' ');
             return { negrita, cuerpo, estado: estadoDe(n).toUpperCase(), respuesta: respuesta ? ` - ${respuesta}` : '' };
-        });
+        };
+        const bloques = grupos.filter(g => g.items.length).map(g => ({ area: g.area, lineas: g.items.map(n => armarLinea(n, g.area === 'Otros')) }));
         const titulo = `Novedades Turno ${this.calcularTurno()} ${fechaHoy}${usuario ? ' - ' + usuario : ''}`;
-        /* Se copia como texto enriquecido para Outlook/Word: título y "fecha RVA" en negrita, una viñeta (•) por novedad */
+        /* Se copia como texto enriquecido para Outlook/Word: Arial (título 14, subtítulos de área 12, resto 11), título y subtítulos en negrita, una viñeta (•) por novedad */
         const conBr = t => escapeHTML(t).replace(/\n/g, '<br>');
-        const N = 'font-weight:normal;color:#000000;', B = 'font-weight:bold;color:#000000;';
-        const html = `<div style="font-family:Calibri,Arial,sans-serif;font-size:11pt;${N}">`
-            + `<p style="margin:0 0 6pt 0;${B}"><span style="${B}">${escapeHTML(titulo)}</span></p>`
-            + `<ul style="margin-top:0;margin-bottom:0;">`
-            + lineas.map(l => {
-                const col = l.estado === 'COMPLETADO' ? '#00B050' : '#FF0000';
-                return `<li style="margin-bottom:3pt;${N}"><span style="${B}">${escapeHTML(l.negrita)}</span>`
-                    + `<span style="${N}"> ${conBr(l.cuerpo)} </span>`
-                    + `<span style="font-weight:bold;color:${col};"><font color="${col}"><b>${l.estado}</b></font></span>`
-                    + `<span style="${N}">${conBr(l.respuesta)}</span></li>`;
-            }).join('')
-            + `</ul></div>`;
-        const texto = [titulo, ...lineas.map(l => `• ${l.negrita} ${l.cuerpo} ${l.estado}${l.respuesta}`)].join('\n');
+        const F = 'font-family:Arial,Helvetica,sans-serif;font-size:11pt;';
+        const N = F + 'font-weight:normal;color:#000000;', B = F + 'font-weight:bold;color:#000000;';
+        const FT = 'font-family:Arial,Helvetica,sans-serif;font-size:14pt;', FA = 'font-family:Arial,Helvetica,sans-serif;font-size:12pt;';   // título: Arial 14 · subtítulo de área: Arial 12
+        const BT = FT + 'font-weight:bold;color:#000000;', BA = FA + 'font-weight:bold;color:#000000;';
+        const html = `<div style="${N}">`
+            + `<p style="margin:0 0 11pt 0;${BT}"><span style="${BT}"><b>${escapeHTML(titulo)}</b></span></p>`
+            + bloques.map(b => `<p style="margin:0 0 3pt 0;${BA}"><span style="${BA}"><b>${escapeHTML(b.area)}</b></span></p>`
+                + `<ul style="margin-top:0;margin-bottom:11pt;${N}">`
+                + b.lineas.map(l => {
+                    const col = l.estado === 'COMPLETADO' ? '#00B050' : '#FF0000';
+                    return `<li style="margin-bottom:3pt;${N}"><span style="${B}"><b>${escapeHTML(l.negrita)}</b></span>`
+                        + `<span style="${N}"> ${conBr(l.cuerpo)} </span>`
+                        + `<span style="${F}font-weight:bold;color:${col};"><font color="${col}"><b>${l.estado}</b></font></span>`
+                        + `<span style="${N}">${conBr(l.respuesta)}</span></li>`;
+                }).join('')
+                + `</ul>`).join('')
+            + `</div>`;
+        const texto = [titulo, '', ...bloques.flatMap(b => [b.area, ...b.lineas.map(l => `• ${l.negrita} ${l.cuerpo} ${l.estado}${l.respuesta}`), ''])].join('\n').trim();
         const copiar = this.copiarRico(html, texto);
         copiar.then(() => {
             selectedNovedadIds.clear(); 
@@ -1013,9 +1040,8 @@ export const UI = {
     },
 
     calcularTurno() {
-        /* Turnos: Mañana 06:30-15:30 · Tarde 14:30-23:30 · Noche 23:00-07:00.
-           En las horas donde se superponen (14:30-15:30, 23:00-23:30, 06:30-07:00) manda el turno que entra. */
+        /* Turnos: Mañana 06:45-15:45 · Tarde 15:45-23:15 · Noche 23:15-06:45 (sin superposición). */
         const now = new Date(), min = now.getHours() * 60 + now.getMinutes();
-        return (min >= 390 && min < 870) ? 'Mañana' : (min >= 870 && min < 1380) ? 'Tarde' : 'Noche';
+        return (min >= 405 && min < 945) ? 'Mañana' : (min >= 945 && min < 1395) ? 'Tarde' : 'Noche';
     }
 };

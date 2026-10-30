@@ -783,7 +783,8 @@
                 function posicionar() {
                     var exceso = hayExceso();
                     wrap.style.display = exceso ? 'block' : 'none';
-                    if (!exceso) { bar.classList.remove('is-fixed'); bar.style.cssText = ''; sincronizar(); return; }
+                    /* Solo se toca la clase si hace falta: escribir "classList.remove" sin cambios también cuenta como mutación */
+                    if (!exceso) { if (bar.classList.contains('is-fixed')) bar.classList.remove('is-fixed'); if (bar.getAttribute('style')) bar.removeAttribute('style'); sincronizar(); return; }
                     var r = cont.getBoundingClientRect(), vh = window.innerHeight || document.documentElement.clientHeight;
                     var modalAbierto = !!document.querySelector('.modal-overlay:not(.hidden)');
                     var fija = r.bottom > vh && r.top < vh - 60;     /* el final de la tabla está más abajo de lo que se ve */
@@ -794,11 +795,23 @@
                 }
 
                 cont.addEventListener('scroll', sincronizar, { passive: true });
-                window.addEventListener('scroll', posicionar, { passive: true, capture: true });
-                window.addEventListener('resize', posicionar);
-                if (window.ResizeObserver) { var ro = new ResizeObserver(posicionar); ro.observe(cont); if (table) ro.observe(table); }
-                else setInterval(posicionar, 500);
-                if (window.MutationObserver) new MutationObserver(posicionar).observe(document.body, { attributes: true, attributeFilter: ['class'], subtree: true });
+                /* Todos los avisos pasan por aquí: como mucho un recálculo por cuadro de pantalla */
+                var pendiente = false;
+                function programar() {
+                    if (pendiente) return;
+                    pendiente = true;
+                    requestAnimationFrame(function () { pendiente = false; posicionar(); });
+                }
+                window.addEventListener('scroll', programar, { passive: true, capture: true });
+                window.addEventListener('resize', programar);
+                if (window.ResizeObserver) { var ro = new ResizeObserver(programar); ro.observe(cont); if (table) ro.observe(table); }
+                else setInterval(programar, 500);
+                /* Solo se vigilan las ventanas (modales) y el contenido principal; antes se vigilaba toda la página, incluida la propia barra,
+                   y al cerrar sesión se generaba un bucle infinito que congelaba la pantalla */
+                if (window.MutationObserver) {
+                    var vigia = new MutationObserver(programar);
+                    document.querySelectorAll('.modal-overlay, #main-content').forEach(function (el) { vigia.observe(el, { attributes: true, attributeFilter: ['class'] }); });
+                }
 
                 /* Arrastrar el pulgar / hacer clic en la barra para saltar a ese punto */
                 var arrastre = null;
@@ -881,6 +894,7 @@
                         th.style.width = anchos[i] + 'px';
                         if (visible(i)) total += anchos[i];
                     });
+                    if (!total) return;   // la tabla está oculta (sesión cerrada): no se le pone ancho 0
                     table.classList.add('cols-fixed');
                     table.style.width = Math.ceil(total) + 'px';
                     table.style.minWidth = '0'; table.style.maxWidth = 'none';

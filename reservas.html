@@ -55,7 +55,7 @@
     <div class="booking-container">
         <div class="brand-header">
             <h1>Agua del Corral</h1>
-            <p>Restaurante & SPA — Sistema de Reservas</p>
+            <p>Restaurante &amp; SPA — Sistema de Reservas</p>
         </div>
 
         <form id="reserva-form">
@@ -153,19 +153,23 @@
         </div>
     </div>
 
-    <!-- Script para renderizado dinámico y conexión con Firebase -->
-    <script type="module">
-        import { FirebaseService } from './firebase-service.js';
-        
+    <!-- Firebase SDKs versión modular por CDN Global -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore-compat.js"></script>
+    <script src="config.js"></script>
+
+    <!-- Script para renderizado dinámico y conexión con Firebase sin conflictos de módulos -->
+    <script>
         document.addEventListener('DOMContentLoaded', async () => {
-            try {
-                await FirebaseService.init(
-                    () => console.log("Firebase conectado en reservas"),
-                    () => console.log("Auth listo"),
-                    err => console.error("Error al iniciar Firebase:", err)
-                );
-            } catch (e) {
-                console.error("No se pudo inicializar Firebase:", e);
+            // Inicializar Firebase Compat
+            if (window.APP_CONFIG && window.APP_CONFIG.FIREBASE_CONFIG) {
+                try {
+                    if (!firebase.apps.length) {
+                        firebase.initializeApp(window.APP_CONFIG.FIREBASE_CONFIG);
+                    }
+                } catch (e) {
+                    console.error("Error al inicializar Firebase:", e);
+                }
             }
 
             const hoy = new Date();
@@ -269,15 +273,22 @@
                 };
 
                 try {
-                    await FirebaseService.addNovedad({
-                        turno: 'Reserva Web',
-                        prioridad: 'Media',
-                        areaElemento: 'Reservas',
-                        nReserva: refCodigo,
-                        novedad: `Reserva online de ${cant} huésped(es). Ingreso: ${reservaData.fechaIngreso} - Salida: ${reservaData.fechaSalida}. Contacto: ${reservaData.contacto.email}`,
-                        notificadoA: 'Recepción, Reservas',
-                        reservaDetalle: reservaData
-                    });
+                    if (window.firebase) {
+                        const db = firebase.firestore();
+                        await db.collection('hotel_log').add({
+                            turno: 'Reserva Web',
+                            prioridad: 'Media',
+                            areaElemento: 'Reservas',
+                            nReserva: refCodigo,
+                            novedad: `Reserva online de ${cant} huésped(es). Ingreso: ${reservaData.fechaIngreso} - Salida: ${reservaData.fechaSalida}. Contacto: ${reservaData.contacto.email}`,
+                            notificadoA: 'Recepción, Reservas',
+                            reservaDetalle: reservaData,
+                            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                            userEmail: reservaData.contacto.email,
+                            estado: 'Pendiente',
+                            comentarios: []
+                        });
+                    }
 
                     form.classList.add('hidden');
                     const exitoBox = document.getElementById('resultado-exito');

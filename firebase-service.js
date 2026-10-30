@@ -27,7 +27,7 @@ export const PERMISOS = [
     { k: 'crear',      label: 'Crear novedades' },
     { k: 'editar',     label: 'Editar novedades' },
     { k: 'borrar',     label: 'Borrar novedades' },
-    { k: 'estado',     label: 'Cambiar estado (En curso / Completado)' },
+    { k: 'estado',     label: 'Cambiar estado (En curso / Resuelto)' },
     { k: 'comentar',   label: 'Responder / comentar' },
     { k: 'alarmas',    label: 'Crear y borrar alarmas' },
     { k: 'whatsapp',   label: 'Generar reporte (botón Reporte)' },

@@ -148,7 +148,7 @@
         let checks = {};           // id de tarea -> true (lo tildado en esta pantalla)
         let activeTab = 'recepcionista';
         let editingId = null, editingText = '';
-        let started = false;
+        let started = false, itemsLoaded = false, usuarioId = '';
 
         /* Mismo cálculo de turno que el Registro Diario: Mañana 06:45-15:45 · Tarde 15:45-23:15 · Noche 23:15-06:45 */
         function turnoActual() {
@@ -160,6 +160,45 @@
             return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
         }
         const puedeEditar = () => FirebaseService.puedeEditarChecklist();
+
+        /* ---------- Lo tildado se recuerda al recargar la página (por usuario) ---------- */
+        const GUARDADO_MAX_MS = 20 * 60 * 60 * 1000;   // pasadas 20 h sin tocar nada, se empieza de cero
+        const claveGuardado = () => `registro-diario:checklist-tildes:${usuarioId}`;
+        function guardarEstado() {
+            if (!usuarioId) return;
+            try {
+                localStorage.setItem(claveGuardado(), JSON.stringify({
+                    nombre: $('input-nombre').value, fecha: $('input-fecha').value, turno: $('input-turno').value,
+                    checks: Object.keys(checks).filter(k => checks[k]), savedAt: Date.now()
+                }));
+            } catch (_) { /* sin almacenamiento */ }
+        }
+        function cargarEstado() {
+            try {
+                const s = JSON.parse(localStorage.getItem(claveGuardado()) || 'null');
+                if (!s || Date.now() - (s.savedAt || 0) > GUARDADO_MAX_MS) { localStorage.removeItem(claveGuardado()); return; }
+                if (s.nombre) $('input-nombre').value = s.nombre;
+                if (s.fecha) $('input-fecha').value = s.fecha;
+                if (TURNOS.includes(s.turno)) $('input-turno').value = s.turno;
+                checks = {};
+                (s.checks || []).forEach(id => { checks[id] = true; });
+            } catch (_) { /* dato dañado: se ignora */ }
+        }
+        /* Aviso que no interrumpe */
+        function toast(texto) {
+            let box = $('toast-box');
+            if (!box) {
+                box = document.createElement('div');
+                box.id = 'toast-box'; box.setAttribute('role', 'status');
+                box.className = 'fixed bottom-4 inset-x-0 z-50 flex flex-col items-center gap-2 px-3 pointer-events-none';
+                document.body.appendChild(box);
+            }
+            const t = document.createElement('div');
+            t.className = 'pointer-events-auto bg-slate-800 text-white text-sm font-semibold px-4 py-2.5 rounded-lg shadow-lg max-w-sm';
+            t.textContent = texto;
+            box.appendChild(t);
+            setTimeout(() => t.remove(), 3500);
+        }
 
         /* ---------- Pantallas ---------- */
         function mostrar(id) { ['loading-screen', 'fatal-screen', 'login-screen', 'app'].forEach(x => $(x).classList.toggle('hidden', x !== id)); }
@@ -177,14 +216,16 @@
         function start(session) {
             if (started) return;
             started = true;
+            usuarioId = String(session.usuario || '').toLowerCase();
             mostrar('app');
             $('user-label').textContent = `${session.nombre} · ${session.rolNombre}`;
             $('tab-jefe').classList.toggle('hidden', !puedeEditar());   // el botón "Jefe Recepción" solo existe para quien puede usarlo
             if (!$('input-nombre').value) $('input-nombre').value = session.nombre || '';
             $('input-fecha').value = hoyLocal();
             $('input-turno').value = turnoActual();
+            cargarEstado();   // si había tildes guardados de hoy, se recuperan (y también nombre, fecha y turno elegidos)
             switchTab('recepcionista');
-            FirebaseService.listenChecklist(list => { items = list; render(); }, e => fatal(new Error('No se pudo leer el Check List: ' + (e?.message || e))));
+            FirebaseService.listenChecklist(list => { items = list; itemsLoaded = true; render(); }, e => fatal(new Error('No se pudo leer el Check List: ' + (e?.message || e))));
             if (window.lucide) lucide.createIcons();
         }
 
@@ -203,7 +244,11 @@
         /* ---------- Dibujar ---------- */
         function render() {
             const ids = new Set(items.map(i => i.id));
-            Object.keys(checks).forEach(k => { if (!ids.has(k)) delete checks[k]; });
+            if (itemsLoaded) {   // recién cuando llegó la lista real se descartan tildes de tareas que ya no existen
+                let cambio = false;
+                Object.keys(checks).forEach(k => { if (!ids.has(k)) { delete checks[k]; cambio = true; } });
+                if (cambio) guardarEstado();
+            }
             if (editingId && !ids.has(editingId)) editingId = null;
             activeTab === 'jefe' ? renderEditor() : renderTable();
         }
@@ -342,9 +387,19 @@
             const tr = e.target.closest('tr[data-id]');
             if (!tr) return;
             checks[tr.dataset.id] = !checks[tr.dataset.id];
+            guardarEstado();
             renderTable();
         });
-        $('input-turno').addEventListener('change', renderTable);
+        /* Al cambiar de turno se pierde lo tildado (cada turno tiene su propia lista) */
+        $('input-turno').addEventListener('change', () => {
+            const habia = Object.values(checks).some(Boolean);
+            checks = {};
+            guardarEstado();
+            renderTable();
+            if (habia) toast('Se limpiaron los tildes al cambiar de turno.');
+        });
+        $('input-nombre').addEventListener('input', guardarEstado);
+        $('input-fecha').addEventListener('change', guardarEstado);
         $('btn-excel').addEventListener('click', exportarAExcel);
         $('btn-agregar').addEventListener('click', agregar);
         $('nueva-tarea').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); agregar(); } });

@@ -11,12 +11,25 @@ const escapeHTML = str => !str ? '' : String(str).replace(/[&<>"']/g, m => ({ '&
 const formatDate = d => (!d || !d.toLocaleDateString) ? 'Fecha Inválida' : d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
 const formatFullTimestamp = d => (!d || !d.toLocaleString) ? '' : d.toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+/* Escapa el texto y marca (<mark>) las coincidencias con lo escrito en la búsqueda general */
+const resaltar = (txt, q) => {
+    const s = String(txt ?? '');
+    if (!q) return escapeHTML(s);
+    const low = s.toLowerCase(), ql = q.toLowerCase();
+    if (low.length !== s.length) return escapeHTML(s);
+    let i = 0, j, out = '';
+    while ((j = low.indexOf(ql, i)) !== -1) {
+        out += escapeHTML(s.slice(i, j)) + '<mark class="hl">' + escapeHTML(s.slice(j, j + ql.length)) + '</mark>';
+        i = j + ql.length;
+    }
+    return out + escapeHTML(s.slice(i));
+};
 const WHATSAPP_ICON = `<svg class="icon" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7.973 1.127l-2.76-2.76a1 1 0 00-1.53.136l-.37.986 1.83 4.956 4.956 1.83.986-.37a1 1 0 00.136-1.53l-2.76-2.76z" clip-rule="evenodd"></path></svg>`;
 
 const itemsPerPage = 20;
 let currentPage = 1, filteredNovedades = [], currentNovedades = [], currentAlarms = [];
 const allNovedadesMap = new Map(), selectedNovedadIds = new Set(), triggeredAlarmsCache = new Set();
-let triggeredCacheDate = '', alarmInterval = null;
+let triggeredCacheDate = '', alarmInterval = null, searchQuery = '';
 
 /* ---- Mejoras: atrasadas, resumen y borrador ---- */
 let agingInterval = null, staleOnly = false;
@@ -104,6 +117,7 @@ export const UI = {
         this.setupDatePickers();
         this.setupEventListeners();
         this.populateMultiselect();
+        this.setupRowMenu();
         AdminPanel.init(this);
     },
 
@@ -234,7 +248,7 @@ export const UI = {
         try {
             await FirebaseService.cambiarClave($('cp-actual').value, $('cp-nueva').value, $('cp-repetir').value);
             this.closeModal($('change-pass-modal'));
-            this.showMessage('Éxito', 'Tu clave fue actualizada. Usala la próxima vez que inicies sesión.');
+            this.toast('Tu clave fue actualizada. Usala la próxima vez que inicies sesión.', 'success', 5000);
         } catch (e) { err.textContent = e.message; err.classList.remove('hidden'); }
         finally { btn.disabled = false; }
     },
@@ -316,6 +330,7 @@ export const UI = {
             const id = e.currentTarget.dataset.id;
             try {
                 await FirebaseService.deleteNovedad(id);
+                this.toast('Novedad eliminada', 'success');
                 selectedNovedadIds.delete(id);
                 this.updateWhatsappButton();
             } catch (err) { this.showMessage('Error', 'No se pudo eliminar: ' + err.message); }
@@ -339,7 +354,7 @@ export const UI = {
         $('reminder-form').addEventListener('submit', e => this.handleReminderSubmit(e));$('active-alarms-list').addEventListener('click', async e => {
             const btn = e.target.closest('.delete-alarm-btn');
             if (!btn || !can('alarmas')) return;
-            try { await FirebaseService.deleteAlarm(btn.dataset.id); }
+            try { await FirebaseService.deleteAlarm(btn.dataset.id); this.toast('Alarma eliminada', 'success'); }
             catch (err) { this.showMessage('Error', 'No se pudo eliminar la alarma: ' + err.message); }
         });
 
@@ -431,6 +446,7 @@ export const UI = {
     applyFiltersAndRender(resetPage = true) {
         const [vTurno, vPrioridad, vEstado, vText] = ['turno', 'prioridad', 'estado', 'text'].map(id => $(`filter-${id}`).value.toLowerCase().trim());
         const vArea = $('filter-area').value;
+        searchQuery = $('filter-text').value.trim();
         const vFechaDesde = $('filter-fecha-desde').value;
         const vFechaHasta = $('filter-fecha-hasta').value;
 
@@ -463,7 +479,7 @@ export const UI = {
         const novedadesLog = $('novedades-log');
         if (!pageData.length) {
             const msg = currentNovedades.length ? 'Ningún registro coincide con los filtros.' : 'Todavía no hay novedades registradas.';
-            novedadesLog.innerHTML = `<tr class="empty-row"><td colspan="14" style="text-align:center; padding:1.5rem; opacity:0.7;">${msg}</td></tr>`;
+            novedadesLog.innerHTML = `<tr class="empty-row"><td colspan="13" style="text-align:center; padding:1.5rem; opacity:0.7;">${msg}</td></tr>`;
             this.updateSelectAllCheckboxState();
             return this.renderPagination();
         }
@@ -487,16 +503,13 @@ export const UI = {
                 <td class="cell-turno">${escapeHTML(n.turno)}</td>
                 <td class="cell-fecha">${formatDate(d)}<br><span class="hora">${d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}</span></td>
                 <td class="cell-prioridad"><span class="badge ${priorClass}">${escapeHTML(n.prioridad)}</span>${ageBadge}</td>
-                <td class="cell-area">${escapeHTML(n.areaElemento || '-')}</td>
-                <td class="cell-reserva">${escapeHTML(n.nReserva || '-')}</td>
-                <td class="cell-habitacion">${escapeHTML(n.habitacion || '-')}</td>
-                <td class="cell-novedad" title="${escapeHTML(n.novedad)}">${escapeHTML(n.novedad)}</td>
-                <td class="cell-notificado">${escapeHTML(n.notificadoA || '-')}</td>
+                <td class="cell-area">${n.areaElemento ? resaltar(n.areaElemento, searchQuery) : '-'}</td>
+                <td class="cell-reserva">${n.nReserva ? resaltar(n.nReserva, searchQuery) : '-'}</td>
+                <td class="cell-habitacion">${n.habitacion ? resaltar(n.habitacion, searchQuery) : '-'}</td>
+                <td class="cell-novedad" title="${escapeHTML(n.novedad)}">${resaltar(n.novedad, searchQuery)}</td>
+                <td class="cell-notificado">${n.notificadoA ? resaltar(n.notificadoA, searchQuery) : '-'}</td>
                 <td class="cell-estado">
-                    <select data-id="${n.id}" ${can('estado') ? '' : 'disabled'} class="estado-select ${n.estado==='Completado'?'status-completado':'status-encurso'}" title="${compTit}">
-                        <option value="Pendiente" ${n.estado!=='Completado'?'selected':''}>Pendiente</option>
-                        <option value="Completado" ${n.estado==='Completado'?'selected':''}>Completado</option>
-                    </select>
+                    <button type="button" data-id="${n.id}" ${can('estado') ? '' : 'disabled'} class="estado-btn estado-pill ${n.estado==='Completado' ? 'is-completado' : 'is-pendiente'}" title="${compTit || (can('estado') ? 'Clic para marcar como ' + (n.estado==='Completado' ? 'Pendiente' : 'Completado') : '')}"><span class="estado-dot"></span>${n.estado==='Completado' ? 'Completado' : 'Pendiente'}</button>
                 </td>
                 <td class="cell-comments">
                     <button data-id="${n.id}" class="button-icon comments-novedad-btn ${count>0?'button-primary':'button-secondary'}" title="Respuestas">
@@ -504,15 +517,15 @@ export const UI = {
                         <span style="font-size:0.8rem;font-weight:bold;margin-left:2px;">${count}</span>
                     </button>
                 </td>
-                <td class="cell-edit">
-                    <button data-id="${n.id}" class="button-icon edit-novedad-btn" title="Editar"><svg class="icon" viewBox="0 0 20 20" fill="currentColor"><path d="M5.433 13.917V17.5h3.583L16.5 10.917l-3.583-3.584L5.433 13.917zm13.197-6.264a.75.75 0 000-1.06l-2.062-2.062a.75.75 0 00-1.06 0l-1.41 1.41 3.584 3.584 1.41-1.41z"/></svg></button>
+                <td class="cell-actions cell-edit" style="text-align:center;">
+                    <button type="button" data-id="${n.id}" class="button-icon row-menu-btn" title="Acciones" aria-label="Acciones" aria-haspopup="menu" aria-expanded="false"><svg class="icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 3a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm0 5.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM11.5 15.5a1.5 1.5 0 10-3 0 1.5 1.5 0 003 0z"/></svg></button>
                 </td>
-                <td class="cell-delete">
-                    <button data-id="${n.id}" class="button-icon delete-novedad-btn" title="Borrar"><svg class="icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75V4.5h8V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4.5A1.25 1.25 0 0111.25 3h2.5A1.25 1.25 0 0115 4.25V5.5h-5V4.25zM3.75 6A1.75 1.75 0 002 7.75v7.5A1.75 1.75 0 003.75 17h12.5A1.75 1.75 0 0018 15.25v-7.5A1.75 1.75 0 0016.25 6H3.75zM10 10a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 10zM13 10a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0113 10zM7 10a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 017 10z" clip-rule="evenodd"/></svg></button>
-                </td>
-                <td class="cell-usuario">${escapeHTML(usuarioDe(n))}</td>
+                <td class="cell-usuario">${resaltar(usuarioDe(n), searchQuery)}</td>
             </tr>`;
         }).join('');
+        if (this._refocusEstado && (!document.activeElement || document.activeElement === document.body)) {
+            novedadesLog.querySelector(`.estado-btn[data-id="${this._refocusEstado}"]`)?.focus({ preventScroll: true });
+        }
         this.updateSelectAllCheckboxState();
         this.renderPagination();
     },
@@ -554,12 +567,105 @@ export const UI = {
         }
         const btn = e.target.closest('button');
         if (!btn) return;
+        if (btn.classList.contains('row-menu-btn')) return this.openRowMenu(btn);
+        if (btn.classList.contains('estado-btn')) return this.toggleEstado(btn);
         const n = allNovedadesMap.get(btn.dataset.id);
-        if (btn.classList.contains('delete-novedad-btn')) {
-            $('confirm-delete-btn').dataset.id = btn.dataset.id;
-            this.openModal($('confirm-modal'));
-        } else if (btn.classList.contains('edit-novedad-btn')) { if (n) this.openNovedadModal(n); }
-        else if (btn.classList.contains('comments-novedad-btn')) this.openComments(n);
+        if (btn.classList.contains('comments-novedad-btn')) this.openComments(n);
+    },
+
+    /* ---------- Menú ⋮ de cada fila (Editar / Borrar) ---------- */
+    setupRowMenu() {
+        if ($('row-menu')) return;
+        const m = document.createElement('div');
+        m.id = 'row-menu'; m.className = 'hidden'; m.setAttribute('role', 'menu');
+        m.innerHTML = `
+            <button type="button" role="menuitem" class="mi-edit" data-act="edit"><svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M5.433 13.917V17.5h3.583L16.5 10.917l-3.583-3.584L5.433 13.917zm13.197-6.264a.75.75 0 000-1.06l-2.062-2.062a.75.75 0 00-1.06 0l-1.41 1.41 3.584 3.584 1.41-1.41z"/></svg>Editar</button>
+            <button type="button" role="menuitem" class="mi-delete" data-act="delete"><svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75V4.5h8V3.75A2.75 2.75 0 0011.25 1h-2.5zM3.75 6A1.75 1.75 0 002 7.75v7.5A1.75 1.75 0 003.75 17h12.5A1.75 1.75 0 0018 15.25v-7.5A1.75 1.75 0 0016.25 6H3.75z" clip-rule="evenodd"/></svg>Borrar</button>`;
+        document.body.appendChild(m);
+        m.addEventListener('click', e => {
+            const b = e.target.closest('button[data-act]');
+            if (!b) return;
+            const id = m.dataset.id;
+            this.closeRowMenu();
+            if (b.dataset.act === 'edit') { const n = allNovedadesMap.get(id); if (n) this.openNovedadModal(n); }
+            else if (can('borrar')) { $('confirm-delete-btn').dataset.id = id; this.openModal($('confirm-modal')); }
+        });
+        document.addEventListener('click', e => { if (!m.classList.contains('hidden') && !e.target.closest('#row-menu, .row-menu-btn')) this.closeRowMenu(); });
+        document.addEventListener('keydown', e => {
+            if (m.classList.contains('hidden')) return;
+            if (e.key === 'Escape') { e.stopPropagation(); this.closeRowMenu(true); return; }
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                const items = Array.from(m.querySelectorAll('button')).filter(b => b.offsetParent !== null);
+                if (!items.length) return;
+                const i = items.indexOf(document.activeElement);
+                items[(i + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length].focus();
+            }
+        }, true);
+        window.addEventListener('scroll', () => this.closeRowMenu(), true);
+        window.addEventListener('resize', () => this.closeRowMenu());
+    },
+
+    openRowMenu(btn) {
+        const m = $('row-menu');
+        if (!m) return;
+        if (!m.classList.contains('hidden') && m.dataset.id === btn.dataset.id) return this.closeRowMenu(true);
+        this.closeRowMenu();
+        m.dataset.id = btn.dataset.id;
+        m._btn = btn;
+        btn.setAttribute('aria-expanded', 'true');
+        m.classList.remove('hidden');
+        const r = btn.getBoundingClientRect(), w = m.offsetWidth, h = m.offsetHeight;
+        let left = Math.max(8, Math.min(r.right - w, window.innerWidth - w - 8));
+        let top = r.bottom + 4;
+        if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 4);
+        m.style.left = left + 'px'; m.style.top = top + 'px';
+        Array.from(m.querySelectorAll('button')).find(b => b.offsetParent !== null)?.focus();
+    },
+
+    closeRowMenu(devolverFoco = false) {
+        const m = $('row-menu');
+        if (!m || m.classList.contains('hidden')) return;
+        m.classList.add('hidden');
+        const btn = m._btn; m._btn = null;
+        btn?.setAttribute('aria-expanded', 'false');
+        if (devolverFoco) btn?.focus?.();
+    },
+
+    /* ---------- Estado: un clic alterna Pendiente / Completado ---------- */
+    async toggleEstado(btn) {
+        if (!can('estado')) return;
+        const id = btn.dataset.id, n = allNovedadesMap.get(id);
+        if (!n) return;
+        const nuevo = n.estado === 'Completado' ? 'Pendiente' : 'Completado';
+        btn.disabled = true;
+        this._refocusEstado = id;
+        setTimeout(() => { if (this._refocusEstado === id) this._refocusEstado = null; }, 2000);
+        try {
+            await FirebaseService.changeEstadoNovedad(id, nuevo);
+            this.toast(nuevo === 'Completado' ? 'Novedad marcada como Completada' : 'Novedad marcada como Pendiente', 'success');
+        } catch (err) {
+            this.showMessage('Error', 'No se pudo cambiar el estado: ' + err.message);
+            this.applyFiltersAndRender(false);
+        }
+    },
+
+    /* ---------- Avisos que no interrumpen (desaparecen solos; clic para cerrar) ---------- */
+    toast(msg, tipo = 'info', ms = 3500) {
+        let box = $('toast-box');
+        if (!box) {
+            box = document.createElement('div');
+            box.id = 'toast-box'; box.setAttribute('role', 'status'); box.setAttribute('aria-live', 'polite');
+            document.body.appendChild(box);
+        }
+        const t = document.createElement('div');
+        t.className = `toast toast-${tipo}`;
+        t.textContent = msg;
+        const cerrar = () => { t.classList.add('toast-out'); setTimeout(() => t.remove(), 220); };
+        t.addEventListener('click', cerrar);
+        box.appendChild(t);
+        while (box.children.length > 4) box.firstChild.remove();
+        setTimeout(cerrar, tipo === 'error' ? Math.max(ms, 6000) : ms);
     },
 
     handleTableChange(e) {
@@ -581,7 +687,7 @@ export const UI = {
         const id = e.currentTarget.dataset.id, n = allNovedadesMap.get(id);
         this.closeModal($('mobile-detail-modal'));
         if (!n) return;
-        try { await FirebaseService.changeEstadoNovedad(id, n.estado === 'Completado' ? 'Pendiente' : 'Completado'); }
+        try { const nuevo = n.estado === 'Completado' ? 'Pendiente' : 'Completado'; await FirebaseService.changeEstadoNovedad(id, nuevo); this.toast(nuevo === 'Completado' ? 'Novedad marcada como Completada' : 'Novedad marcada como Pendiente', 'success'); }
         catch (err) { this.showMessage('Error', 'No se pudo cambiar el estado: ' + err.message); }
     },
 
@@ -631,6 +737,7 @@ export const UI = {
             if (id) await FirebaseService.updateNovedad(id, payload);
             else { await FirebaseService.addNovedad({ ...payload, turno: this.calcularTurno() }); this.clearDraft(); }
             this.closeModal($('novedad-modal'));
+            this.toast(id ? 'Novedad actualizada' : 'Novedad guardada', 'success');
         } catch (err) { this.showMessage('Error', err.message); }
         finally { $('submit-button').disabled = false; $('loading-spinner').classList.add('hidden'); }
     },
@@ -671,6 +778,7 @@ export const UI = {
         btn.disabled = true;
         try {
             await FirebaseService.deleteAllNovedades();
+            this.toast('Se eliminaron todos los registros', 'success');
             selectedNovedadIds.clear();
             this.updateWhatsappButton();
             this.closeModal($('delete-all-modal'));
@@ -710,7 +818,7 @@ export const UI = {
         filteredNovedades.forEach(n => selectedNovedadIds.add(n.id));
         this.updateWhatsappButton();
         this.applyFiltersAndRender(false);
-        if (!selectedNovedadIds.size) this.showMessage('Traspaso de turno', 'No hay novedades pendientes.');
+        if (!selectedNovedadIds.size) this.toast('No hay novedades pendientes.', 'info');
     },
 
     /* Copia el reporte con formato (Outlook/Word lo pegan con viñetas, negrita y colores).
@@ -825,7 +933,7 @@ export const UI = {
             selectedNovedadIds.clear(); 
             this.updateWhatsappButton(); 
             this.applyFiltersAndRender(false);
-            this.showMessage('Éxito', 'Reporte copiado. Pegalo en tu email.');
+            this.toast('Reporte copiado. Pegalo en tu email.', 'success');
         }, err => this.showMessage('Error', 'No se pudo copiar: ' + (err?.message || err?.name || 'motivo desconocido')));
     },
 
@@ -862,7 +970,7 @@ export const UI = {
 
     exportPDF() {
         if (!can('pdf')) return;
-        if (!filteredNovedades.length) return this.showMessage('Aviso', 'No hay registros visibles para exportar.');
+        if (!filteredNovedades.length) return this.toast('No hay registros visibles para exportar.', 'info');
         const printWindow = window.open('', '_blank');
         if (!printWindow) return this.showMessage('Error', 'El navegador bloqueó la ventana emergente para generar el reporte.');
         
@@ -960,6 +1068,7 @@ export const UI = {
             e.target.reset(); 
             this.syncReminderFields();
             this.closeModal($('reminder-modal'));
+            this.toast('Alarma guardada', 'success');
         } catch (err) { this.showMessage('Error', 'No se pudo guardar la alarma: ' + err.message); }
         finally { btn.disabled = false; }
     },

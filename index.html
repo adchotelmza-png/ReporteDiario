@@ -68,8 +68,9 @@
 
         /* --- Permisos por categoría: la clase perm-no-X se pone en <body> al iniciar sesión --- */
         .perm-no-crear .top-dashboard-grid > div:has(#open-add-modal-btn) { display: none; }
-        .perm-no-editar .cell-edit, .perm-no-editar .novedades-table th:nth-child(12), .perm-no-editar #mobile-btn-editar { display: none; }
-        .perm-no-borrar .cell-delete, .perm-no-borrar .novedades-table th:nth-child(13), .perm-no-borrar #mobile-btn-borrar { display: none; }
+        .perm-no-editar #mobile-btn-editar { display: none; }
+        .perm-no-editar.perm-no-borrar .cell-actions, .perm-no-editar.perm-no-borrar .novedades-table th:nth-child(12) { display: none; }
+        .perm-no-borrar #mobile-btn-borrar { display: none; }
         .perm-no-estado #mobile-btn-estado { display: none; }
         .perm-no-comentar #add-comment-form { display: none; }
         .perm-no-alarmas #open-reminder-modal-btn { display: none !important; }
@@ -84,8 +85,8 @@
            · Barra fina propia, siempre a la vista pegada al borde inferior de la pantalla (reemplaza a la de arriba y a la nativa)
            · Se engrosa al pasar el mouse · colores según el tema (oscuro por defecto / claro)
            · Sombras en los bordes que avisan que hay más columnas ocultas */
-        :root { --tsb-rail: rgba(255,255,255,.10); --tsb-thumb: rgba(148,163,184,.55); --tsb-thumb-hover: #0891b2; --tsb-strip: rgba(30,32,36,.78); --tsb-shadow: rgba(0,0,0,.65); }
-        [data-theme="light"] { --tsb-rail: rgba(0,0,0,.08); --tsb-thumb: rgba(71,85,105,.45); --tsb-thumb-hover: #0891b2; --tsb-strip: rgba(255,255,255,.85); --tsb-shadow: rgba(0,0,0,.22); }
+        :root { --tsb-rail: rgba(255,255,255,.10); --tsb-thumb: rgba(148,163,184,.55); --tsb-thumb-hover: #0891b2; --tsb-strip: rgba(30,32,36,.78); --tsb-shadow: rgba(0,0,0,.65); --pop-bg: #2b2d33; --pop-fg: #f3f4f6; --pop-border: rgba(255,255,255,.14); }
+        [data-theme="light"] { --tsb-rail: rgba(0,0,0,.08); --tsb-thumb: rgba(71,85,105,.45); --tsb-thumb-hover: #0891b2; --tsb-strip: rgba(255,255,255,.85); --tsb-shadow: rgba(0,0,0,.22); --pop-bg: #ffffff; --pop-fg: #1f2937; --pop-border: rgba(0,0,0,.14); }
         .table-shadow-wrap { position: relative; }
         .table-shadow-wrap::before, .table-shadow-wrap::after { content: ''; position: absolute; top: 0; bottom: 0; width: 34px; pointer-events: none; z-index: 6; opacity: 0; transition: opacity .2s ease; }
         .table-shadow-wrap::before { left: 0; background: linear-gradient(to right, var(--tsb-shadow), transparent); }
@@ -100,6 +101,42 @@
         #tsb:hover .tsb-rail, #tsb:focus-visible .tsb-rail, #tsb.is-dragging .tsb-rail { height: 12px; bottom: 3px; }
         #tsb .tsb-thumb { position: absolute; left: 0; top: 0; height: 100%; border-radius: 999px; background: var(--tsb-thumb); transition: background .15s ease; will-change: transform; }
         #tsb:hover .tsb-thumb, #tsb.is-dragging .tsb-thumb, #tsb:focus-visible .tsb-thumb { background: var(--tsb-thumb-hover); }
+
+        /* ===== Estado como botón de color (un clic alterna Pendiente / Completado) ===== */
+        .estado-pill { display: inline-flex; align-items: center; gap: 6px; padding: .28rem .7rem; border-radius: 999px; font: inherit; font-size: .82rem; font-weight: 700; line-height: 1.2; border: 1px solid transparent; cursor: pointer; white-space: nowrap; transition: filter .15s, transform .1s, box-shadow .15s; }
+        .estado-pill .estado-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: none; }
+        .estado-pill.is-pendiente { background: rgba(245,158,11,.18); color: #b45309; border-color: rgba(245,158,11,.55); }
+        .estado-pill.is-completado { background: rgba(16,185,129,.18); color: #047857; border-color: rgba(16,185,129,.55); }
+        [data-theme="dark"] .estado-pill.is-pendiente { color: #fbbf24; }
+        [data-theme="dark"] .estado-pill.is-completado { color: #34d399; }
+        .estado-pill:not(:disabled):hover { filter: brightness(1.12); box-shadow: 0 0 0 3px rgba(128,128,128,.2); }
+        .estado-pill:not(:disabled):active { transform: scale(.96); }
+        .estado-pill:focus-visible { outline: 2px solid #0891b2; outline-offset: 2px; }
+        .estado-pill:disabled { cursor: default; }
+
+        /* ===== Botón ⋮ y menú de acciones de cada fila (Editar / Borrar) ===== */
+        .row-menu-btn { width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; padding: 0; }
+        .row-menu-btn svg { width: 18px; height: 18px; }
+        .row-menu-btn[aria-expanded="true"] { background: rgba(128,128,128,.25); }
+        #row-menu { position: fixed; z-index: 10003; min-width: 9.5rem; padding: .3rem; border-radius: 10px; background: var(--pop-bg); color: var(--pop-fg); border: 1px solid var(--pop-border); box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+        #row-menu.hidden { display: none; }
+        #row-menu button { display: flex; align-items: center; gap: .55rem; width: 100%; padding: .5rem .7rem; background: none; border: 0; border-radius: 7px; color: inherit; font: inherit; font-size: .9rem; cursor: pointer; text-align: left; }
+        #row-menu button:hover, #row-menu button:focus-visible { background: rgba(128,128,128,.22); outline: none; }
+        #row-menu .mi-delete { color: #ef4444; }
+        #row-menu svg { width: 16px; height: 16px; flex: none; }
+        .perm-no-editar #row-menu .mi-edit, .perm-no-borrar #row-menu .mi-delete { display: none; }
+
+        /* ===== Avisos que no interrumpen (se van solos; clic para cerrar) ===== */
+        #toast-box { position: fixed; right: 1rem; bottom: 3.2rem; z-index: 10010; display: flex; flex-direction: column; gap: .5rem; align-items: flex-end; pointer-events: none; max-width: calc(100vw - 2rem); }
+        .toast { pointer-events: auto; cursor: pointer; max-width: 26rem; padding: .65rem 1rem .65rem .85rem; border-radius: 10px; background: var(--pop-bg); color: var(--pop-fg); border: 1px solid var(--pop-border); border-left: 4px solid #0891b2; box-shadow: 0 8px 24px rgba(0,0,0,.3); font-size: .9rem; font-weight: 600; animation: toast-in .22s ease-out; }
+        .toast-success { border-left-color: #10b981; }
+        .toast-error { border-left-color: #ef4444; }
+        .toast-out { opacity: 0; transform: translateY(6px); transition: opacity .2s, transform .2s; }
+        @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+        @media (prefers-reduced-motion: reduce) { .toast { animation: none; } .toast-out { transition: none; } }
+
+        /* ===== Texto buscado resaltado ===== */
+        mark.hl { background: #fde047; color: #111827; border-radius: 3px; padding: 0 1px; }
         /* Columnas de la tabla ajustables: líneas verticales grises claras y manijas para arrastrar */
         .novedades-table th, .novedades-table td { border-right: 1px solid rgba(128,128,128,.28); }
         .novedades-table th:last-child, .novedades-table td:last-child { border-right: 0; }
@@ -365,8 +402,7 @@
                             <th>Notificado a</th>
                             <th>Estado</th>
                             <th>Respuestas</th>
-                            <th>Editar</th>
-                            <th>Borrar</th>
+                            <th title="Acciones" aria-label="Acciones" style="text-align:center;">⋮</th>
                             <th>Usuario</th>
                         </tr>
                     </thead>
@@ -815,9 +851,8 @@
                 [120, 300, 140], /* 8  Notificado a */
                 [125, 150, 130], /* 9  Estado */
                 [60, 90, 65],    /* 10 Respuestas */
-                [56, 56, 56],    /* 11 Editar (fija) */
-                [56, 56, 56],    /* 12 Borrar (fija) */
-                [110, 190, 110]  /* 13 Usuario */
+                [60, 60, 60],    /* 11 Acciones ⋮ (fija) */
+                [110, 190, 110]  /* 12 Usuario */
             ];
             var NOVEDAD = 7, CASILLA = 40, L = COL;
             function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }

@@ -294,9 +294,9 @@ export const FirebaseService = {
 
     async changeEstadoNovedad(id, nuevoEstado) {
         const payload = { estado: nuevoEstado };
-        if (nuevoEstado === 'Completado') {
-            payload.completadoEn = serverTimestamp();
-            payload.completadoPor = this.email;
+        if (nuevoEstado === 'Resuelto') {
+            payload.resueltoEn = serverTimestamp();
+            payload.resueltoPor = this.email;
         }
         return await updateDoc(doc(db, getPath(COLLECTION_NAME), id), payload);
     },

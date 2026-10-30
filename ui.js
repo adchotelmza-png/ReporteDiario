@@ -491,7 +491,7 @@ export const UI = {
             const creatorText = `Creado por: ${n.userEmail ? n.userEmail.split('@')[0] : 'Sistema'} el ${formatFullTimestamp(n.timestamp?.toDate?.())}`;
             const tooltipTitle = escapeHTML(lastEditorText ? `${lastEditorText} | ${creatorText}` : creatorText);
 
-            const compTit = n.estado === 'Resuelto' && n.ResueltoPor ? escapeHTML(`Resuelto por ${n.ResueltoPor} el ${formatFullTimestamp(n.ResueltoEn?.toDate?.())}`) : '';
+            const compTit = n.estado === 'Resuelto' && (n.resueltoPor || n.completadoPor) ? escapeHTML(`Resuelto por ${n.resueltoPor || n.completadoPor} el ${formatFullTimestamp((n.resueltoEn || n.completadoEn)?.toDate?.())}`) : '';
             const priorClass = { 'Urgente':'badge-urgente', 'Alta':'badge-alta', 'Media':'badge-media' }[n.prioridad] || 'badge-baja';
             const count = n.comentarios?.length || 0;
             const stale = isStale(n);
@@ -643,7 +643,7 @@ export const UI = {
         setTimeout(() => { if (this._refocusEstado === id) this._refocusEstado = null; }, 2000);
         try {
             await FirebaseService.changeEstadoNovedad(id, nuevo);
-            this.toast(nuevo === 'Resuelto' ? 'Novedad marcada como Completada' : 'Novedad marcada como Pendiente', 'success');
+            this.toast(nuevo === 'Resuelto' ? 'Novedad marcada como Resuelta' : 'Novedad marcada como Pendiente', 'success');
         } catch (err) {
             this.showMessage('Error', 'No se pudo cambiar el estado: ' + err.message);
             this.applyFiltersAndRender(false);
@@ -687,7 +687,7 @@ export const UI = {
         const id = e.currentTarget.dataset.id, n = allNovedadesMap.get(id);
         this.closeModal($('mobile-detail-modal'));
         if (!n) return;
-        try { const nuevo = n.estado === 'Resuelto' ? 'Pendiente' : 'Resuelto'; await FirebaseService.changeEstadoNovedad(id, nuevo); this.toast(nuevo === 'Resuelto' ? 'Novedad marcada como Completada' : 'Novedad marcada como Pendiente', 'success'); }
+        try { const nuevo = n.estado === 'Resuelto' ? 'Pendiente' : 'Resuelto'; await FirebaseService.changeEstadoNovedad(id, nuevo); this.toast(nuevo === 'Resuelto' ? 'Novedad marcada como Resuelta' : 'Novedad marcada como Pendiente', 'success'); }
         catch (err) { this.showMessage('Error', 'No se pudo cambiar el estado: ' + err.message); }
     },
 
@@ -919,7 +919,7 @@ export const UI = {
             + bloques.map(b => `<p style="margin:0 0 3pt 0;${BA}"><span style="${BA}"><b>${escapeHTML(b.area)}</b></span></p>`
                 + `<ul style="margin-top:0;margin-bottom:11pt;${N}">`
                 + b.lineas.map(l => {
-                    const col = l.estado === 'Resuelto' ? '#00B050' : '#FF0000';
+                    const col = l.estado.toUpperCase() === 'RESUELTO' ? '#00B050' : '#FF0000';
                     return `<li style="margin-bottom:3pt;${N}"><span style="${B}"><b>${escapeHTML(l.negrita)}</b></span>`
                         + `<span style="${N}"> ${conBr(l.cuerpo)} </span>`
                         + `<span style="${F}font-weight:bold;color:${col};"><font color="${col}"><b>${l.estado}</b></font></span>`

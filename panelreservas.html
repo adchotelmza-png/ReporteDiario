@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="color-scheme" content="dark light">
     <title>Panel de Reservas Web - Agua del Corral</title>
-    
-    <!-- Configuración compartida de Firebase -->
+
+    <!-- Configuración de Firebase (config.js) -->
     <script src="config.js"></script>
 
     <script>
@@ -18,32 +18,36 @@
         })();
     </script>
     <noscript><link rel="stylesheet" href="dark.css"></noscript>
-    
+
     <style>
         .hidden { display: none !important; }
         body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background-color: var(--color-fondo, #f8fafc); color: var(--color-texto, #1e293b); margin: 0; padding: 1.5rem; }
-        
+
         .panel-container { max-width: 1100px; margin: 0 auto; }
         .brand-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 2px solid rgba(8, 145, 178, 0.15); padding-bottom: 1rem; flex-wrap: wrap; gap: 1rem; }
         .brand-header h1 { font-family: 'Playfair Display', serif; font-size: 1.8rem; margin: 0; color: var(--color-principal, #0891b2); }
         .brand-header p { margin: 0.2rem 0 0; font-size: 0.9rem; opacity: 0.75; }
+        .header-right { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; font-size: 0.9rem; }
+        .header-right a { color: #0891b2; text-decoration: none; font-weight: 600; }
+        .btn-small { background: none; border: 1px solid rgba(128,128,128,0.4); color: inherit; border-radius: 6px; padding: 0.35rem 0.8rem; font-size: 0.85rem; cursor: pointer; }
+        .btn-small:hover { background: rgba(128,128,128,0.12); }
 
         .controls-bar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
-        .search-input { padding: 0.6rem 1rem; border-radius: 8px; border: 1px solid rgba(128,128,128,0.3); background: var(--color-input-bg, transparent); color: inherit; font-size: 0.95rem; width: 280px; }
+        .search-input { padding: 0.6rem 1rem; border-radius: 8px; border: 1px solid rgba(128,128,128,0.3); background: var(--color-input-bg, transparent); color: inherit; font-size: 0.95rem; width: 280px; max-width: 100%; box-sizing: border-box; }
         .counter-badge { background: rgba(8, 145, 178, 0.12); color: #0891b2; font-weight: bold; padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.85rem; }
 
         .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.25rem; }
-        .reserva-card { background: var(--color-card-bg, #ffffff); border: 1px solid rgba(128,128,128,0.2); border-radius: 12px; padding: 1.25rem; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s; position: relative; }
-        .reserva-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); border-color: #0891b2; }
-        
+        .reserva-card { background: var(--color-card-bg, #ffffff); border: 1px solid rgba(128,128,128,0.2); border-radius: 12px; padding: 1.25rem; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s; }
+        .reserva-card:hover, .reserva-card:focus-visible { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); border-color: #0891b2; outline: none; }
+
         .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.8rem; }
         .card-ref { font-weight: bold; color: #0891b2; font-size: 1.05rem; }
         .card-date { font-size: 0.75rem; opacity: 0.6; }
-        .card-guest-name { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.4rem; }
-        .card-info-item { font-size: 0.88rem; margin-bottom: 0.3rem; opacity: 0.85; display: flex; align-items: center; gap: 6px; }
+        .card-guest-name { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.4rem; overflow-wrap: anywhere; }
+        .card-info-item { font-size: 0.88rem; margin-bottom: 0.3rem; opacity: 0.85; overflow-wrap: anywhere; }
 
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 1rem; box-sizing: border-box; }
-        .modal-card { background: var(--color-card-bg, #ffffff); border-radius: 16px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; padding: 1.8rem; box-shadow: 0 20px 40px rgba(0,0,0,0.2); position: relative; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 1rem; box-sizing: border-box; }
+        .modal-card { background: var(--color-card-bg, #ffffff); border-radius: 16px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; padding: 1.8rem; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
         .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(128,128,128,0.2); padding-bottom: 0.8rem; margin-bottom: 1.2rem; }
         .modal-title { font-family: 'Playfair Display', serif; font-size: 1.4rem; margin: 0; color: #0891b2; }
         .close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: inherit; opacity: 0.7; }
@@ -51,21 +55,33 @@
 
         .modal-section { margin-bottom: 1.2rem; background: rgba(128,128,128,0.03); padding: 1rem; border-radius: 10px; border: 1px solid rgba(128,128,128,0.1); }
         .modal-section-title { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: bold; color: #0891b2; margin-bottom: 0.6rem; }
-        
-        .detail-row { display: flex; justify-content: space-between; align-items: center; padding: 0.35rem 0; font-size: 0.92rem; border-bottom: 1px dashed rgba(128,128,128,0.15); }
+        .guest-block { margin-bottom: 0.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(128,128,128,0.1); }
+        .guest-block:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+
+        .detail-row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.35rem 0; font-size: 0.92rem; border-bottom: 1px dashed rgba(128,128,128,0.15); }
         .detail-row:last-child { border-bottom: none; }
         .detail-label { opacity: 0.7; font-weight: 500; }
-        .detail-value { font-weight: 600; text-align: right; }
+        .detail-value { font-weight: 600; text-align: right; overflow-wrap: anywhere; }
 
         .actions-container { display: flex; gap: 0.75rem; margin-top: 1rem; }
         .btn-action { padding: 0.8rem 1.2rem; border-radius: 8px; font-weight: 600; font-size: 0.95rem; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; border: none; transition: filter 0.2s; }
         .btn-copy-all { background: #0891b2; color: white; flex: 1; }
-        .btn-copy-all:hover { filter: brightness(1.1); }
         .btn-delete { background: #ef4444; color: white; }
-        .btn-delete:hover { filter: brightness(1.1); }
+        .btn-action:hover { filter: brightness(1.1); }
 
         .empty-msg { text-align: center; padding: 3rem 1rem; opacity: 0.6; font-size: 1.05rem; grid-column: 1 / -1; }
-        
+
+        /* Inicio de sesión */
+        .login-box { max-width: 360px; margin: 12vh auto 0; background: var(--color-card-bg, #ffffff); border: 1px solid rgba(128,128,128,0.2); border-radius: 16px; padding: 2rem; box-shadow: 0 10px 25px rgba(0,0,0,0.08); }
+        .login-box h2 { font-family: 'Playfair Display', serif; color: #0891b2; margin: 0 0 0.3rem; }
+        .login-box p.sub { margin: 0 0 1.2rem; opacity: 0.7; font-size: 0.9rem; }
+        .login-box label { display: block; font-size: 0.85rem; font-weight: 600; margin: 0.8rem 0 0.3rem; }
+        .login-box input { width: 100%; box-sizing: border-box; padding: 0.65rem 0.85rem; border-radius: 8px; border: 1px solid rgba(128,128,128,0.3); background: var(--color-input-bg, transparent); color: inherit; font-size: 0.95rem; }
+        .login-box input:focus { outline: none; border-color: #0891b2; box-shadow: 0 0 0 3px rgba(8,145,178,0.15); }
+        .login-box button { width: 100%; margin-top: 1.2rem; padding: 0.8rem; border: none; border-radius: 8px; background: #0891b2; color: #fff; font-weight: 600; font-size: 1rem; cursor: pointer; }
+        .login-box button:disabled { opacity: 0.6; cursor: wait; }
+        .login-error { color: #ef4444; font-size: 0.88rem; font-weight: 600; margin: 0.8rem 0 0; }
+
         .toast { position: fixed; bottom: 20px; right: 20px; background: #10b981; color: white; padding: 0.75rem 1.25rem; border-radius: 8px; font-size: 0.9rem; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 2000; animation: fadeIn 0.2s ease-out; }
         .toast-error { background: #ef4444; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -74,260 +90,304 @@
 </head>
 <body>
 
-    <div class="panel-container">
+    <!-- Inicio de sesión (mismos usuarios y claves del Registro Diario) -->
+    <div id="login-view" class="login-box hidden">
+        <h2>Agua del Corral</h2>
+        <p class="sub">Panel de Reservas Web. Ingresá con tu usuario y clave del Registro Diario.</p>
+        <form id="login-form" autocomplete="on">
+            <label for="login-usuario">Usuario</label>
+            <input type="text" id="login-usuario" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required>
+            <label for="login-clave">Clave</label>
+            <input type="password" id="login-clave" autocomplete="current-password" required>
+            <p id="login-error" class="login-error hidden" role="alert"></p>
+            <button type="submit" id="login-btn">Entrar</button>
+        </form>
+    </div>
+
+    <!-- Panel -->
+    <div id="panel-view" class="panel-container hidden">
         <div class="brand-header">
             <div>
                 <h1>Agua del Corral</h1>
-                <p>Restaurante & SPA — Panel de Reservas Recibidas</p>
+                <p>Restaurante &amp; SPA — Panel de Reservas Recibidas</p>
             </div>
-            <a href="reservas.html" target="_blank" style="color:#0891b2; text-decoration:none; font-weight:600; font-size:0.9rem;">+ Ir al Formulario Web</a>
+            <div class="header-right">
+                <span id="user-name"></span>
+                <a href="reservas.html" target="_blank" rel="noopener">+ Ir al Formulario Web</a>
+                <button type="button" id="logout-btn" class="btn-small">Cerrar sesión</button>
+            </div>
         </div>
 
         <div class="controls-bar">
-            <input type="text" id="search-input" class="search-input" placeholder="Buscar por huésped, DNI, email o código...">
+            <input type="search" id="search-input" class="search-input" placeholder="Buscar por huésped, DNI, email o código..." aria-label="Buscar reservas">
             <span id="counter-badge" class="counter-badge">Cargando reservas...</span>
         </div>
 
         <div id="cards-container" class="cards-grid"></div>
     </div>
 
-    <!-- MODAL DE DETALLE DE RESERVA -->
-    <div id="detail-modal" class="modal-overlay hidden">
+    <!-- Detalle de la reserva -->
+    <div id="detail-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-ref-title">
         <div class="modal-card">
             <div class="modal-header">
                 <div>
-                    <h2 id="modal-ref-title" class="modal-title">Reserva #ADC-0000</h2>
+                    <h2 id="modal-ref-title" class="modal-title">Reserva</h2>
                     <span id="modal-created-at" style="font-size:0.78rem; opacity:0.6;"></span>
                 </div>
-                <button type="button" class="close-btn" id="btn-close-modal">&times;</button>
+                <button type="button" class="close-btn" id="btn-close-modal" aria-label="Cerrar">&times;</button>
             </div>
 
             <div id="modal-body-content"></div>
 
             <div class="actions-container">
-                <button type="button" id="btn-copy-full" class="btn-action btn-copy-all">
-                    📋 Copiar Datos
-                </button>
-                <button type="button" id="btn-delete-reserva" class="btn-action btn-delete" title="Eliminar Reserva">
-                    🗑️ Eliminar
-                </button>
+                <button type="button" id="btn-copy-full" class="btn-action btn-copy-all">📋 Copiar Datos</button>
+                <button type="button" id="btn-delete-reserva" class="btn-action btn-delete" title="Eliminar Reserva">🗑️ Eliminar</button>
             </div>
         </div>
     </div>
 
-    <!-- Firebase SDKs versión compat por CDN Global -->
     <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore-compat.js"></script>
-    <script src="config.js"></script>
 
     <script>
-        let todasLasReservas = [];
-        let reservaSeleccionadaId = null;
+        /* Las reservas web viven en "hotel_reservas". Las que se recibieron antes del cambio quedaron en
+           "hotel_log" (marcadas con turno "Reserva Web"): se siguen mostrando desde ahí para no perderlas. */
+        const COL_RESERVAS = 'hotel_reservas';
+        const COL_LEGADO = 'hotel_log';
+        const SESSION_KEY = 'registro-diario:sesion';   // la misma que usa el Registro Diario
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            if (window.APP_CONFIG && window.APP_CONFIG.FIREBASE_CONFIG) {
-                try {
-                    if (!firebase.apps.length) {
-                        firebase.initializeApp(window.APP_CONFIG.FIREBASE_CONFIG);
-                    }
-                    escucharReservas();
-                } catch (e) {
-                    console.error("Error al conectar:", e);
-                }
-            }
+        const $ = id => document.getElementById(id);
+        const esc = v => String(v ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
 
-            document.getElementById('search-input').addEventListener('input', (e) => {
-                const query = e.target.value.toLowerCase().trim();
-                filtrarYRenderizar(query);
-            });
+        let db, auth;
+        let session = null;                  // { id, nombre, puedeBorrar }
+        let unsubs = [];
+        let origen = { nuevas: [], legado: [] };
+        let reservas = [];
+        let seleccionada = null;
 
-            document.getElementById('btn-close-modal').addEventListener('click', cerrarModal);
-            document.getElementById('detail-modal').addEventListener('click', (e) => {
-                if (e.target.id === 'detail-modal') cerrarModal();
-            });
-
-            document.getElementById('btn-delete-reserva').addEventListener('click', eliminarReservaActual);
-        });
-
-        function escucharReservas() {
-            const db = firebase.firestore();
-            db.collection('hotel_log').orderBy('timestamp', 'desc').onSnapshot((snapshot) => {
-                const items = [];
-                snapshot.forEach(doc => {
-                    items.push({ id: doc.id, ...doc.data() });
-                });
-
-                todasLasReservas = items.filter(item => {
-                    return item.reservaDetalle || 
-                           item.areaElemento === 'Reservas' || 
-                           item.turno === 'Reserva Web' ||
-                           (item.nReserva && item.nReserva.startsWith('ADC-'));
-                });
-                filtrarYRenderizar(document.getElementById('search-input').value.toLowerCase().trim());
-            }, (err) => console.error("Error en Snapshot:", err));
+        /* ---------- Utilidades de fecha ---------- */
+        /* Acepta AAAA-MM-DD (reservas nuevas) o DD/MM/AAAA (reservas viejas) */
+        function formatDate(str) {
+            if (!str) return '-';
+            const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(str);
+            return m ? `${m[3]}/${m[2]}/${m[1]}` : str;
         }
 
-        function filtrarYRenderizar(query = '') {
-            const container = document.getElementById('cards-container');
-            const badge = document.getElementById('counter-badge');
+        function calcularEdad(str) {
+            const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(str || '');
+            if (!m) return '-';
+            const hoy = new Date();
+            let edad = hoy.getFullYear() - Number(m[1]);
+            const mes = hoy.getMonth() + 1 - Number(m[2]);
+            if (mes < 0 || (mes === 0 && hoy.getDate() < Number(m[3]))) edad--;
+            return edad >= 0 ? `${edad} años` : '-';
+        }
 
-            const filtradas = todasLasReservas.filter(item => {
-                const det = item.reservaDetalle || {};
-                const huespedPrincipal = det.huespedes?.[0]?.nombre || '';
-                const docPrincipal = det.huespedes?.[0]?.documento || '';
-                const email = det.contacto?.email || '';
-                const ref = item.nReserva || '';
+        const fechaCorta = d => d ? d.toLocaleDateString('es-ES') : 'Reciente';
+        const fechaLarga = d => d ? d.toLocaleString('es-ES') : 'Reciente';
 
-                const textoCompleto = `${huespedPrincipal} ${docPrincipal} ${email} ${ref} ${item.novedad || ''}`.toLowerCase();
-                return textoCompleto.includes(query);
+        /* ---------- Mensajes ---------- */
+        function toast(msg, esError = false) {
+            const t = document.createElement('div');
+            t.className = 'toast' + (esError ? ' toast-error' : '');
+            t.textContent = msg;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 3000);
+        }
+
+        /* ---------- Sesión ---------- */
+        async function iniciarSesion(usuario, clave) {
+            const id = String(usuario || '').trim().toLowerCase();
+            if (!id) throw new Error('Ingresá tu usuario.');
+            const snap = await db.collection('hotel_users').doc(id).get();
+            // clave === null: se restaura una sesión ya iniciada en el Registro Diario
+            if (!snap.exists || (clave !== null && snap.data().clave !== clave)) throw new Error('Usuario o clave incorrectos.');
+            const u = snap.data();
+            const rolSnap = await db.collection('hotel_roles').doc(u.rolId).get();
+            const permisos = rolSnap.exists ? (rolSnap.data().permisos || {}) : {};
+            session = { id, nombre: u.nombre, puedeBorrar: u.rolId === 'admin' || permisos.borrar === true };
+            try { sessionStorage.setItem(SESSION_KEY, id); } catch (_) { /* sin almacenamiento */ }
+            mostrarPanel();
+        }
+
+        function mostrarLogin() {
+            $('panel-view').classList.add('hidden');
+            $('login-view').classList.remove('hidden');
+            $('login-clave').value = '';
+            $('login-usuario').focus();
+        }
+
+        function mostrarPanel() {
+            $('login-view').classList.add('hidden');
+            $('panel-view').classList.remove('hidden');
+            $('user-name').textContent = session.nombre;
+            escucharReservas();
+        }
+
+        function cerrarSesion() {
+            detenerEscuchas();
+            session = null;
+            origen = { nuevas: [], legado: [] };
+            reservas = [];
+            try { sessionStorage.removeItem(SESSION_KEY); } catch (_) { /* nada */ }
+            cerrarModal();
+            mostrarLogin();
+        }
+
+        /* ---------- Datos ---------- */
+        function detenerEscuchas() {
+            unsubs.forEach(u => u());
+            unsubs = [];
+        }
+
+        const aItem = (doc, col) => {
+            const x = doc.data();
+            return {
+                id: doc.id,
+                col,
+                codigo: x.nReserva || 'ADC-0000',
+                det: x.reservaDetalle || {},
+                fecha: x.timestamp?.toDate ? x.timestamp.toDate() : null,
+                resumen: x.novedad || ''
+            };
+        };
+
+        function combinar() {
+            reservas = [...origen.nuevas, ...origen.legado].sort((a, b) => (b.fecha?.getTime() ?? 9e15) - (a.fecha?.getTime() ?? 9e15));
+            filtrarYRenderizar();
+        }
+
+        function escucharReservas() {
+            detenerEscuchas();
+
+            unsubs.push(db.collection(COL_RESERVAS).orderBy('timestamp', 'desc').limit(300).onSnapshot(snap => {
+                origen.nuevas = snap.docs.map(d => aItem(d, COL_RESERVAS));
+                combinar();
+            }, err => {
+                console.error('Error al leer las reservas:', err);
+                $('counter-badge').textContent = 'No se pudieron cargar las reservas';
+                toast('No se pudieron cargar las reservas: ' + err.message, true);
+            }));
+
+            // Reservas anteriores al cambio (solo las marcadas como "Reserva Web"; las novedades comunes no entran)
+            unsubs.push(db.collection(COL_LEGADO).where('turno', '==', 'Reserva Web').onSnapshot(snap => {
+                origen.legado = snap.docs.map(d => aItem(d, COL_LEGADO));
+                combinar();
+            }, err => console.warn('No se pudieron leer las reservas anteriores:', err)));
+        }
+
+        /* ---------- Lista ---------- */
+        function filtrarYRenderizar() {
+            const q = $('search-input').value.toLowerCase().trim();
+            const cont = $('cards-container');
+
+            const filtradas = reservas.filter(r => {
+                const h = r.det.huespedes?.[0] || {};
+                return `${h.nombre || ''} ${h.documento || ''} ${r.det.contacto?.email || ''} ${r.codigo} ${r.resumen}`.toLowerCase().includes(q);
             });
 
-            badge.textContent = `${filtradas.length} Reserva(s) encontrada(s)`;
+            $('counter-badge').textContent = `${filtradas.length} Reserva(s) encontrada(s)`;
 
-            if (filtradas.length === 0) {
-                container.innerHTML = `<div class="empty-msg">No se encontraron reservas registradas.</div>`;
+            if (!filtradas.length) {
+                cont.innerHTML = '<div class="empty-msg">No se encontraron reservas registradas.</div>';
                 return;
             }
 
-            container.innerHTML = filtradas.map(item => {
-                const det = item.reservaDetalle || {};
-                const principal = det.huespedes?.[0] || { nombre: 'Sin especificar', documento: '-' };
-                const cant = det.cantidadHuespedes || 1;
-                const ingreso = det.fechaIngreso || '-';
-                const salida = det.fechaSalida || '-';
-
+            cont.innerHTML = filtradas.map(r => {
+                const h = r.det.huespedes?.[0] || { nombre: 'Sin especificar', documento: '-' };
                 return `
-                    <div class="reserva-card" data-id="${item.id}">
+                    <div class="reserva-card" data-id="${esc(r.id)}" data-col="${esc(r.col)}" tabindex="0" role="button">
                         <div class="card-header">
-                            <span class="card-ref">#${item.nReserva || 'ADC-0000'}</span>
-                            <span class="card-date">${item.timestamp?.toDate ? item.timestamp.toDate().toLocaleDateString('es-ES') : 'Reciente'}</span>
+                            <span class="card-ref">#${esc(r.codigo)}</span>
+                            <span class="card-date">${esc(fechaCorta(r.fecha))}</span>
                         </div>
-                        <div class="card-guest-name">${principal.nombre}</div>
-                        <div class="card-info-item">👤 Documento: <strong>${principal.documento}</strong></div>
-                        <div class="card-info-item">👥 Cantidad: <strong>${cant} huésped(es)</strong></div>
-                        <div class="card-info-item">📅 Estadía: <strong>${ingreso} al ${salida}</strong></div>
-                        <div class="card-info-item">📧 Email: <strong>${det.contacto?.email || '-'}</strong></div>
-                    </div>
-                `;
+                        <div class="card-guest-name">${esc(h.nombre)}</div>
+                        <div class="card-info-item">👤 Documento: <strong>${esc(h.documento)}</strong></div>
+                        <div class="card-info-item">👥 Cantidad: <strong>${esc(r.det.cantidadHuespedes || 1)} huésped(es)</strong></div>
+                        <div class="card-info-item">📅 Estadía: <strong>${esc(formatDate(r.det.fechaIngreso))} al ${esc(formatDate(r.det.fechaSalida))}</strong></div>
+                        <div class="card-info-item">📧 Email: <strong>${esc(r.det.contacto?.email || '-')}</strong></div>
+                    </div>`;
             }).join('');
-
-            document.querySelectorAll('.reserva-card').forEach(card => {
-                card.addEventListener('click', () => {
-                    const id = card.getAttribute('data-id');
-                    const reserva = todasLasReservas.find(r => r.id === id);
-                    if (reserva) abrirModal(reserva);
-                });
-            });
         }
 
-        function calcularEdad(fechaNacimientoStr) {
-            if (!fechaNacimientoStr) return '-';
-            const nac = new Date(fechaNacimientoStr);
-            const hoy = new Date();
-            let edad = hoy.getFullYear() - nac.getFullYear();
-            const m = hoy.getMonth() - nac.getMonth();
-            if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) {
-                edad--;
-            }
-            return isNaN(edad) ? '-' : `${edad} años`;
-        }
+        const buscar = (id, col) => reservas.find(r => r.id === id && r.col === col);
 
-        function abrirModal(item) {
-            reservaSeleccionadaId = item.id;
-            const det = item.reservaDetalle || {};
-            const modal = document.getElementById('detail-modal');
-            
-            document.getElementById('modal-ref-title').textContent = `Reserva #${item.nReserva || 'ADC-0000'}`;
-            document.getElementById('modal-created-at').textContent = `Recibido el: ${item.timestamp?.toDate ? item.timestamp.toDate().toLocaleString('es-ES') : 'Reciente'}`;
+        /* ---------- Detalle ---------- */
+        const fila = (etiqueta, valor) => `<div class="detail-row"><span class="detail-label">${esc(etiqueta)}</span><span class="detail-value">${esc(valor)}</span></div>`;
 
-            let huespedesHtml = (det.huespedes || []).map((h, i) => `
-                <div style="margin-bottom:0.5rem; padding-bottom:0.5rem; border-bottom:1px solid rgba(128,128,128,0.1);">
-                    <div class="detail-row">
-                        <span class="detail-label">Huésped ${i+1} ${i===0?'(Principal)':''}:</span>
-                        <span class="detail-value">${h.nombre}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Documento:</span>
-                        <span class="detail-value">${h.documento}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Fecha de Nacimiento (Edad):</span>
-                        <span class="detail-value">${formatDate(h.fechaNacimiento)} (${calcularEdad(h.fechaNacimiento)})</span>
-                    </div>
-                </div>
-            `).join('');
+        function abrirModal(r) {
+            seleccionada = r;
+            const det = r.det;
 
-            document.getElementById('modal-body-content').innerHTML = `
+            $('modal-ref-title').textContent = `Reserva #${r.codigo}`;
+            $('modal-created-at').textContent = `Recibido el: ${fechaLarga(r.fecha)}`;
+
+            const huespedes = (det.huespedes || []).map((h, i) => `
+                <div class="guest-block">
+                    ${fila(`Huésped ${i + 1}${i === 0 ? ' (Principal)' : ''}:`, h.nombre)}
+                    ${fila('Documento:', h.documento)}
+                    ${fila('Fecha de Nacimiento (Edad):', `${formatDate(h.fechaNacimiento)} (${calcularEdad(h.fechaNacimiento)})`)}
+                </div>`).join('');
+
+            $('modal-body-content').innerHTML = `
                 <div class="modal-section">
                     <div class="modal-section-title">Fechas y Horario</div>
-                    <div class="detail-row"><span class="detail-label">Check-in:</span><span class="detail-value">${det.fechaIngreso || '-'}</span></div>
-                    <div class="detail-row"><span class="detail-label">Check-out:</span><span class="detail-value">${det.fechaSalida || '-'}</span></div>
-                    <div class="detail-row"><span class="detail-label">Horario Estimado de Llegada:</span><span class="detail-value">${det.horarioLlegada || 'No especificado'}</span></div>
-                    <div class="detail-row"><span class="detail-label">Total Huéspedes:</span><span class="detail-value">${det.cantidadHuespedes || 1}</span></div>
+                    ${fila('Check-in:', formatDate(det.fechaIngreso))}
+                    ${fila('Check-out:', formatDate(det.fechaSalida))}
+                    ${fila('Horario Estimado de Llegada:', det.horarioLlegada || 'No especificado')}
+                    ${fila('Total Huéspedes:', det.cantidadHuespedes || 1)}
                 </div>
-
                 <div class="modal-section">
                     <div class="modal-section-title">Huéspedes Registrados</div>
-                    ${huespedesHtml || '<div class="detail-row"><span class="detail-label">Detalle:</span><span class="detail-value">' + (item.novedad || 'Sin datos detallados') + '</span></div>'}
+                    ${huespedes || fila('Detalle:', r.resumen || 'Sin datos detallados')}
                 </div>
-
                 <div class="modal-section">
                     <div class="modal-section-title">Datos de Contacto y Facturación</div>
-                    <div class="detail-row"><span class="detail-label">Email:</span><span class="detail-value">${det.contacto?.email || '-'}</span></div>
-                    <div class="detail-row"><span class="detail-label">Teléfono:</span><span class="detail-value">${det.contacto?.telefono || '-'}</span></div>
-                    <div class="detail-row"><span class="detail-label">País:</span><span class="detail-value">${det.contacto?.pais || '-'}</span></div>
-                    <div class="detail-row"><span class="detail-label">Dirección:</span><span class="detail-value">${det.contacto?.direccion || '-'}</span></div>
-                    <div class="detail-row"><span class="detail-label">CUIT Factura A:</span><span class="detail-value">${det.facturaA?.cuit || 'No solicitado'}</span></div>
-                </div>
-            `;
+                    ${fila('Email:', det.contacto?.email || '-')}
+                    ${fila('Teléfono:', det.contacto?.telefono || '-')}
+                    ${fila('País:', det.contacto?.pais || '-')}
+                    ${fila('Dirección:', det.contacto?.direccion || '-')}
+                    ${fila('CUIT Factura A:', det.facturaA?.cuit || 'No solicitado')}
+                </div>`;
 
-            document.getElementById('btn-copy-full').onclick = () => copiarTextoReserva(item);
-
-            modal.classList.remove('hidden');
+            $('btn-delete-reserva').classList.toggle('hidden', !session?.puedeBorrar);
+            $('detail-modal').classList.remove('hidden');
         }
 
         function cerrarModal() {
-            reservaSeleccionadaId = null;
-            document.getElementById('detail-modal').classList.add('hidden');
+            seleccionada = null;
+            $('detail-modal').classList.add('hidden');
         }
 
         async function eliminarReservaActual() {
-            if (!reservaSeleccionadaId) return;
-
-            const confirmar = confirm("¿Estás seguro de que deseas eliminar esta reserva? Esta acción no se puede deshacer.");
-            if (!confirmar) return;
-
+            if (!seleccionada || !session?.puedeBorrar) return;
+            if (!confirm('¿Estás seguro de que deseas eliminar esta reserva? Esta acción no se puede deshacer.')) return;
             try {
-                const db = firebase.firestore();
-                await db.collection('hotel_log').doc(reservaSeleccionadaId).delete();
+                await db.collection(seleccionada.col).doc(seleccionada.id).delete();
                 cerrarModal();
-                mostrarToast('Reserva eliminada correctamente.');
+                toast('Reserva eliminada correctamente.');
             } catch (err) {
-                console.error("Error al eliminar la reserva:", err);
-                mostrarToast('No se pudo eliminar la reserva.', true);
+                console.error('Error al eliminar la reserva:', err);
+                toast('No se pudo eliminar la reserva.', true);
             }
         }
 
-        function formatDate(str) {
-            if (!str) return '-';
-            const [y, m, d] = str.split('-');
-            return d && m && y ? `${d}/${m}/${y}` : str;
-        }
-
-        function copiarTextoReserva(item) {
-            const det = item.reservaDetalle || {};
-            const huespedesTexto = (det.huespedes || []).map((h, i) => 
-                `  - Huésped ${i+1}: ${h.nombre} | Doc: ${h.documento} | F.Nac: ${formatDate(h.fechaNacimiento)} (${calcularEdad(h.fechaNacimiento)})`
+        async function copiarTextoReserva(r) {
+            const det = r.det;
+            const huespedes = (det.huespedes || []).map((h, i) =>
+                `  - Huésped ${i + 1}: ${h.nombre} | Doc: ${h.documento} | F.Nac: ${formatDate(h.fechaNacimiento)} (${calcularEdad(h.fechaNacimiento)})`
             ).join('\n');
 
-            const texto = `=== RESERVA #${item.nReserva || 'ADC-0000'} ===
-Fecha Ingreso: ${det.fechaIngreso || '-'}
-Fecha Salida: ${det.fechaSalida || '-'}
+            const texto = `=== RESERVA #${r.codigo} ===
+Fecha Ingreso: ${formatDate(det.fechaIngreso)}
+Fecha Salida: ${formatDate(det.fechaSalida)}
 Horario Estimado de Llegada: ${det.horarioLlegada || 'No especificado'}
 Cantidad Huéspedes: ${det.cantidadHuespedes || 1}
 
 HUÉSPEDES:
-${huespedesTexto || item.novedad}
+${huespedes || r.resumen}
 
 CONTACTO:
 Email: ${det.contacto?.email || '-'}
@@ -337,18 +397,66 @@ Dirección: ${det.contacto?.direccion || '-'}
 CUIT (Factura A): ${det.facturaA?.cuit || 'No solicitado'}
 ===========================`;
 
-            navigator.clipboard.writeText(texto).then(() => {
-                mostrarToast('¡Datos de la reserva copiados al portapapeles!');
-            }).catch(err => console.error("Error al copiar:", err));
+            try {
+                await navigator.clipboard.writeText(texto);
+                toast('¡Datos de la reserva copiados al portapapeles!');
+            } catch (err) {
+                console.error('Error al copiar:', err);
+                toast('No se pudo copiar al portapapeles.', true);
+            }
         }
 
-        function mostrarToast(msg, esError = false) {
-            const toast = document.createElement('div');
-            toast.className = `toast ${esError ? 'toast-error' : ''}`;
-            toast.textContent = msg;
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
-        }
+        /* ---------- Inicio ---------- */
+        document.addEventListener('DOMContentLoaded', async () => {
+            $('search-input').addEventListener('input', filtrarYRenderizar);
+            $('btn-close-modal').addEventListener('click', cerrarModal);
+            $('detail-modal').addEventListener('click', e => { if (e.target.id === 'detail-modal') cerrarModal(); });
+            document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarModal(); });
+            $('btn-delete-reserva').addEventListener('click', eliminarReservaActual);
+            $('btn-copy-full').addEventListener('click', () => seleccionada && copiarTextoReserva(seleccionada));
+            $('logout-btn').addEventListener('click', cerrarSesion);
+
+            const abrirTarjeta = e => {
+                const card = e.target.closest('.reserva-card');
+                const r = card && buscar(card.dataset.id, card.dataset.col);
+                if (r) abrirModal(r);
+            };
+            $('cards-container').addEventListener('click', abrirTarjeta);
+            $('cards-container').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrirTarjeta(e); } });
+
+            $('login-form').addEventListener('submit', async e => {
+                e.preventDefault();
+                const btn = $('login-btn'), err = $('login-error');
+                err.classList.add('hidden');
+                btn.disabled = true;
+                try { await iniciarSesion($('login-usuario').value, $('login-clave').value); }
+                catch (ex) { err.textContent = ex.message; err.classList.remove('hidden'); }
+                finally { btn.disabled = false; }
+            });
+
+            try {
+                const cfg = window.APP_CONFIG && window.APP_CONFIG.FIREBASE_CONFIG;
+                if (!cfg) throw new Error('config.js no se cargó o no define FIREBASE_CONFIG.');
+                if (!firebase.apps.length) firebase.initializeApp(cfg);
+                auth = firebase.auth();
+                db = firebase.firestore();
+                await auth.signInAnonymously();   // igual que el Registro Diario: Firebase solo da acceso a Firestore
+            } catch (err) {
+                console.error('Error al conectar:', err);
+                mostrarLogin();
+                $('login-error').textContent = 'No se pudo conectar con el sistema: ' + err.message;
+                $('login-error').classList.remove('hidden');
+                return;
+            }
+
+            // Si ya se inició sesión en el Registro Diario en esta pestaña, se reutiliza
+            let guardado = null;
+            try { guardado = sessionStorage.getItem(SESSION_KEY); } catch (_) { /* nada */ }
+            if (guardado) {
+                try { await iniciarSesion(guardado, null); return; } catch (_) { /* se pide el login */ }
+            }
+            mostrarLogin();
+        });
     </script>
 </body>
 </html>

@@ -7,7 +7,7 @@
     <title>Registro Diario</title>
     
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- Valores configurables (clave de "Borrar todo", etc.) viven en config.js -->
+    <!-- Configuración de Firebase (config.js) -->
     <script src="config.js"></script>
 
     <script>
@@ -28,12 +28,11 @@
         .multiselect-dropdown::-webkit-scrollbar-thumb { background: #c5c5c5; border-radius: 10px; }
         .multiselect-dropdown::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
         
-        /* --- CORRECCIÓN DE ICONOS --- */
+        /* --- Iconos --- */
         #theme-sun-icon, #theme-moon-icon { display: none; }
         .icon { width: 1.25rem; height: 1.25rem; display: inline-block; object-fit: contain; vertical-align: middle; }
         #theme-sun-icon, #theme-moon-icon { background-color: transparent; border-radius: 9999px; padding: 0.15rem; }
         .multiselect-toggle-icon { width: 1.25rem; height: 1.25rem; }
-        .button-icon.sun-active { background-color: rgba(0,0,0,0.65) !important; border-color: rgba(218, 208, 208, 0.158) !important; color: #FFFFFF !important; box-shadow: none !important; }
         
         /* Header y Alineaciones */
         .main-header { position: relative; }
@@ -968,8 +967,8 @@
     </script>
 
     <script type="module">
-        import { FirebaseService } from './firebase-service.js?v=20261030d';
-        import { UI } from './ui.js?v=20261030d';
+        import { FirebaseService } from './firebase-service.js?v=20261030e';
+        import { UI } from './ui.js?v=20261030e';
         UI.init();
         FirebaseService.init(session => UI.onAuthSuccess(session), () => UI.onAuthError(), err => UI.onInitError(err))
             .catch(err => UI.onInitError(err));

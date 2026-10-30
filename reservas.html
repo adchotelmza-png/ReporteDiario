@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="color-scheme" content="dark light">
-    <title>Reserva de Habitaciones - Agua del Corral - Restaurante & SPA</title>
-    
-    <!-- Configuración compartida de Firebase -->
+    <title>Reserva de Habitaciones - Agua del Corral - Restaurante &amp; SPA</title>
+
+    <!-- Configuración de Firebase (config.js) -->
     <script src="config.js"></script>
 
     <script>
@@ -18,7 +18,7 @@
         })();
     </script>
     <noscript><link rel="stylesheet" href="dark.css"></noscript>
-    
+
     <style>
         .hidden { display: none !important; }
         body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background-color: var(--color-fondo, #f8fafc); color: var(--color-texto, #1e293b); margin: 0; padding: 0; }
@@ -26,27 +26,48 @@
         .brand-header { text-align: center; margin-bottom: 2rem; }
         .brand-header h1 { font-family: 'Playfair Display', serif; font-size: 1.8rem; margin: 0 0 0.5rem; color: var(--color-principal, #0891b2); }
         .brand-header p { font-size: 0.95rem; opacity: 0.7; margin: 0; }
-        
+
         .form-section { margin-bottom: 1.8rem; }
         .section-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid rgba(8, 145, 178, 0.15); display: flex; align-items: center; gap: 8px; color: var(--color-principal, #0891b2); }
-        
+        .section-title small { font-size: 0.75rem; font-weight: normal; opacity: 0.7; margin-left: auto; }
+
         .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
         .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
         .form-group-full { grid-column: span 2; }
-        
+
         .form-label { font-size: 0.85rem; font-weight: 600; opacity: 0.9; }
+        .form-label small { display: block; font-size: 0.72rem; font-weight: normal; opacity: 0.6; }
         .form-input, .form-select { padding: 0.7rem 0.9rem; border-radius: 8px; border: 1px solid rgba(128,128,128,0.3); background: var(--color-input-bg, transparent); color: inherit; font-size: 0.95rem; transition: border-color 0.2s, box-shadow 0.2s; }
         .form-input:focus, .form-select:focus { outline: none; border-color: #0891b2; box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.15); }
-        
+
         .guest-card { background: rgba(128,128,128,0.03); border: 1px solid rgba(128,128,128,0.12); border-radius: 10px; padding: 1rem; margin-bottom: 1rem; }
-        .guest-title { font-size: 0.9rem; font-weight: bold; margin-bottom: 0.75rem; color: #0891b2; display: flex; justify-content: space-between; align-items: center; }
-        
+        .guest-title { font-size: 0.9rem; font-weight: bold; margin-bottom: 0.75rem; color: #0891b2; }
+
+        .billing-box { margin-top: 0.5rem; background: rgba(128,128,128,0.04); padding: 1rem; border-radius: 8px; border: 1px dashed rgba(128,128,128,0.2); }
+
+        .info-box { background-color: #e0f2fe; border: 1px solid #bae6fd; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.8rem; color: #0369a1; font-size: 0.92rem; line-height: 1.6; }
+        .info-box strong.info-title { display: block; margin-bottom: 0.5rem; }
+        .info-box ul { margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 4px; }
+        .info-box a { color: #0284c7; text-decoration: underline; font-weight: 600; }
+
+        .form-error { color: #ef4444; font-size: 0.9rem; font-weight: 600; margin: 0 0 1rem; }
+
         .btn-primary { background: #0891b2; color: white; border: none; padding: 0.85rem 1.5rem; font-size: 1rem; font-weight: 600; border-radius: 8px; cursor: pointer; width: 100%; transition: filter 0.2s, transform 0.1s; }
         .btn-primary:hover { filter: brightness(1.08); }
         .btn-primary:active { transform: scale(0.98); }
-        
+        .btn-primary:disabled { opacity: 0.6; cursor: wait; }
+
         .success-box { text-align: center; padding: 2rem 0; }
         .success-box svg { width: 64px; height: 64px; color: #10b981; margin-bottom: 1rem; }
+
+        /* Campo trampa anti-spam: las personas no lo ven */
+        .hp-field { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+        @media (max-width: 560px) {
+            .booking-container { margin: 0; border-radius: 0; padding: 1.25rem; }
+            .form-grid { grid-template-columns: 1fr; }
+            .form-group-full { grid-column: span 1; }
+        }
     </style>
     <link rel="icon" type="image/png" href="Icono.png">
 </head>
@@ -58,33 +79,21 @@
             <p>Restaurante &amp; SPA — Sistema de Reservas</p>
         </div>
 
-        <form id="reserva-form">
-            <!-- SECCIÓN 1: ESTADÍA Y HUÉSPEDES -->
+        <form id="reserva-form" novalidate>
+            <!-- 1. Estadía -->
             <div class="form-section">
-                <div class="section-title">
-                    1. Fecha de reserva y huéspedes
-                    <span style="font-size: 0.75rem; font-weight: normal; opacity: 0.7; margin-left: auto;">Booking date & guests</span>
-                </div>
+                <div class="section-title">1. Fecha de reserva y huéspedes <small>Booking date &amp; guests</small></div>
                 <div class="form-grid">
                     <div class="form-group">
-                        <label for="fecha-ingreso" class="form-label">
-                            Fecha de Ingreso (Check-in)
-                            <span style="display:block; font-size:0.72rem; font-weight:normal; opacity:0.6;">Check-in date</span>
-                        </label>
+                        <label for="fecha-ingreso" class="form-label">Fecha de Ingreso (Check-in)<small>Check-in date</small></label>
                         <input type="date" id="fecha-ingreso" required class="form-input">
                     </div>
                     <div class="form-group">
-                        <label for="fecha-salida" class="form-label">
-                            Fecha de Salida (Check-out)
-                            <span style="display:block; font-size:0.72rem; font-weight:normal; opacity:0.6;">Check-out date</span>
-                        </label>
+                        <label for="fecha-salida" class="form-label">Fecha de Salida (Check-out)<small>Check-out date</small></label>
                         <input type="date" id="fecha-salida" required class="form-input">
                     </div>
                     <div class="form-group">
-                        <label for="cantidad-huespedes" class="form-label">
-                            Cantidad de Huéspedes
-                            <span style="display:block; font-size:0.72rem; font-weight:normal; opacity:0.6;">Number of guests</span>
-                        </label>
+                        <label for="cantidad-huespedes" class="form-label">Cantidad de Huéspedes<small>Number of guests</small></label>
                         <select id="cantidad-huespedes" class="form-select">
                             <option value="1">1 Huésped / Guest</option>
                             <option value="2" selected>2 Huéspedes / Guests</option>
@@ -95,106 +104,65 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="horario-llegada" class="form-label">
-                            Horario estimado de llegada
-                            <span style="display:block; font-size:0.72rem; font-weight:normal; opacity:0.6;">Estimated arrival time</span>
-                        </label>
+                        <label for="horario-llegada" class="form-label">Horario estimado de llegada<small>Estimated arrival time</small></label>
                         <input type="time" id="horario-llegada" class="form-input" value="15:00">
                     </div>
                 </div>
             </div>
 
-            <!-- CONTENEDOR DINÁMICO DE HUÉSPEDES -->
+            <!-- 2. Huéspedes (se genera con JavaScript) -->
             <div class="form-section">
-                <div class="section-title">
-                    2. Datos de los Huéspedes
-                    <span style="font-size: 0.75rem; font-weight: normal; opacity: 0.7; margin-left: auto;">Guest details</span>
-                </div>
+                <div class="section-title">2. Datos de los Huéspedes <small>Guest details</small></div>
                 <div id="huespedes-container"></div>
             </div>
 
-            <!-- DATOS DE CONTACTO Y FACTURACIÓN -->
+            <!-- 3. Contacto y facturación -->
             <div class="form-section">
-                <div class="section-title">
-                    3. Contacto y Facturación
-                    <span style="font-size: 0.75rem; font-weight: normal; opacity: 0.7; margin-left: auto;">Contact & billing</span>
-                </div>
+                <div class="section-title">3. Contacto y Facturación <small>Contact &amp; billing</small></div>
                 <div class="form-grid">
                     <div class="form-group">
-                        <label for="email" class="form-label">
-                            Email de contacto
-                            <span style="display:block; font-size:0.72rem; font-weight:normal; opacity:0.6;">Contact email</span>
-                        </label>
-                        <input type="email" id="email" required class="form-input" placeholder="correo@ejemplo.com">
+                        <label for="email" class="form-label">Email de contacto<small>Contact email</small></label>
+                        <input type="email" id="email" required class="form-input" placeholder="correo@ejemplo.com" autocomplete="email">
                     </div>
                     <div class="form-group">
-                        <label for="telefono" class="form-label">
-                            Teléfono de contacto
-                            <span style="display:block; font-size:0.72rem; font-weight:normal; opacity:0.6;">Phone number</span>
-                        </label>
-                        <input type="tel" id="telefono" required class="form-input" placeholder="+54 9 ...">
+                        <label for="telefono" class="form-label">Teléfono de contacto<small>Phone number</small></label>
+                        <input type="tel" id="telefono" required class="form-input" placeholder="+54 9 ..." autocomplete="tel">
                     </div>
                     <div class="form-group">
-                        <label for="pais" class="form-label">
-                            País
-                            <span style="display:block; font-size:0.72rem; font-weight:normal; opacity:0.6;">Country</span>
-                        </label>
-                        <input type="text" id="pais" required class="form-input" value="Argentina">
+                        <label for="pais" class="form-label">País<small>Country</small></label>
+                        <input type="text" id="pais" required class="form-input" value="Argentina" autocomplete="country-name">
                     </div>
                     <div class="form-group">
-                        <label for="direccion" class="form-label">
-                            Dirección
-                            <span style="display:block; font-size:0.72rem; font-weight:normal; opacity:0.6;">Address</span>
-                        </label>
-                        <input type="text" id="direccion" required class="form-input" placeholder="Calle y número">
+                        <label for="direccion" class="form-label">Dirección<small>Address</small></label>
+                        <input type="text" id="direccion" required class="form-input" placeholder="Calle y número" autocomplete="street-address">
                     </div>
-                    <div class="form-group form-group-full" style="margin-top: 0.5rem; background: rgba(128,128,128,0.04); padding: 1rem; border-radius: 8px; border: 1px dashed rgba(128,128,128,0.2);">
+                    <div class="form-group form-group-full billing-box">
                         <label for="cuit" class="form-label">
                             En caso de necesitar factura A, por favor complete el siguiente campo:
-                            <span style="display:block; font-size:0.72rem; font-weight:normal; opacity:0.6;">If you need VAT invoice A, please fill out:</span>
+                            <small>If you need VAT invoice A, please fill out:</small>
                         </label>
-                        <input type="text" id="cuit" class="form-input" placeholder="CUIT (Ej: 20-12345678-9)">
+                        <input type="text" id="cuit" class="form-input" placeholder="CUIT (Ej: 20-12345678-9)" inputmode="numeric">
                     </div>
                 </div>
             </div>
 
-            <!-- RECUADRO INFORMATIVO COLOR CELESTE CLARO -->
-            <div style="background-color: #e0f2fe; border: 1px solid #bae6fd; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.8rem; color: #0369a1; font-size: 0.92rem; line-height: 1.6;">
-                <div style="font-weight: bold; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 6px;">
-                    <span>ℹ️ Información Útil / Useful Information</span>
-                </div>
-                <ul style="margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 4px;">
+            <div class="info-box">
+                <strong class="info-title">ℹ️ Información Útil / Useful Information</strong>
+                <ul>
                     <li><strong>Check In:</strong> 15hs</li>
                     <li><strong>Check Out:</strong> 12hs.</li>
                     <li><strong>Desayuno:</strong> 7hs a 10hs en el 9no Piso</li>
                     <li><strong>Spa:</strong> 12hs a 21hs en el 1er Subsuelo</li>
-                    <li><strong>Mapa / Map:</strong> <a href="https://maps.app.goo.gl/5wSoy6sXWchqrETLA" target="_blank" style="color: #0284c7; text-decoration: underline; font-weight: 600;">Ver ubicación en Google Maps</a></li>
+                    <li><strong>Mapa / Map:</strong> <a href="https://maps.app.goo.gl/5wSoy6sXWchqrETLA" target="_blank" rel="noopener">Ver ubicación en Google Maps</a></li>
                 </ul>
             </div>
 
-            <!-- SECCIÓN PAGO (OCULTA TEMPORALMENTE) -->
-            <div class="form-section hidden" id="seccion-pago">
-                <div class="section-title">Forma de Pago (Garantía)</div>
-                <div class="form-grid">
-                    <div class="form-group form-group-full">
-                        <label class="form-label">Número de Tarjeta</label>
-                        <input type="text" id="cc-numero" class="form-input" placeholder="4532 •••• •••• ••••">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Vencimiento (MM/AA)</label>
-                        <input type="text" id="cc-vencimiento" class="form-input" placeholder="MM/AA">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Código de Seguridad</label>
-                        <input type="password" id="cc-cvc" class="form-input" maxlength="4" placeholder="CVC">
-                    </div>
-                    <div class="form-group form-group-full">
-                        <label class="form-label">Titular de la Tarjeta</label>
-                        <input type="text" id="cc-titular" class="form-input" placeholder="Nombre completo como figura en la tarjeta">
-                    </div>
-                </div>
+            <div class="hp-field" aria-hidden="true">
+                <label for="sitio-web">No completar este campo</label>
+                <input type="text" id="sitio-web" tabindex="-1" autocomplete="off">
             </div>
 
+            <p id="form-error" class="form-error hidden" role="alert"></p>
             <button type="submit" id="btn-enviar" class="btn-primary">Confirmar Reserva</button>
         </form>
 
@@ -207,152 +175,141 @@
         </div>
     </div>
 
-    <!-- Firebase SDKs versión modular por CDN Global -->
     <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore-compat.js"></script>
-    <script src="config.js"></script>
 
-    <!-- Script para renderizado dinámico y conexión con Firebase sin conflictos de módulos -->
     <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Inicializar Firebase Compat
-            if (window.APP_CONFIG && window.APP_CONFIG.FIREBASE_CONFIG) {
-                try {
-                    if (!firebase.apps.length) {
-                        firebase.initializeApp(window.APP_CONFIG.FIREBASE_CONFIG);
-                    }
-                } catch (e) {
-                    console.error("Error al inicializar Firebase:", e);
-                }
+        /* Las reservas web se guardan en su propia colección ("hotel_reservas"),
+           separada de las novedades del Registro Diario ("hotel_log"). */
+        const COLECCION_RESERVAS = 'hotel_reservas';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const $ = id => document.getElementById(id);
+            const pad = n => String(n).padStart(2, '0');
+            const toInputDate = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+            const form = $('reserva-form');
+            const btn = $('btn-enviar');
+            const errorBox = $('form-error');
+            const inputIngreso = $('fecha-ingreso');
+            const inputSalida = $('fecha-salida');
+            const selectCant = $('cantidad-huespedes');
+            const contenedor = $('huespedes-container');
+
+            /* ---- Firebase ---- */
+            let db = null;
+            try {
+                const cfg = window.APP_CONFIG && window.APP_CONFIG.FIREBASE_CONFIG;
+                if (!cfg) throw new Error('config.js no se cargó o no define FIREBASE_CONFIG.');
+                if (!firebase.apps.length) firebase.initializeApp(cfg);
+                db = firebase.firestore();
+            } catch (e) {
+                console.error('Error al inicializar Firebase:', e);
             }
 
+            /* ---- Fechas ---- */
             const hoy = new Date();
             const manana = new Date(hoy);
             manana.setDate(manana.getDate() + 1);
-            
-            const formatDateInput = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-            
-            const inputIngreso = document.getElementById('fecha-ingreso');
-            const inputSalida = document.getElementById('fecha-salida');
-            
-            inputIngreso.value = formatDateInput(hoy);
-            inputSalida.value = formatDateInput(manana);
-            inputIngreso.min = formatDateInput(hoy);
-            
+            inputIngreso.value = toInputDate(hoy);
+            inputIngreso.min = toInputDate(hoy);
+            inputSalida.value = toInputDate(manana);
+            inputSalida.min = toInputDate(manana);
+
             inputIngreso.addEventListener('change', () => {
-                if (inputIngreso.value >= inputSalida.value) {
-                    const d = new Date(inputIngreso.value);
-                    d.setDate(d.getDate() + 1);
-                    inputSalida.value = formatDateInput(d);
-                }
-                inputSalida.min = inputIngreso.value;
+                if (!inputIngreso.value) return;
+                const [y, m, d] = inputIngreso.value.split('-').map(Number);
+                const minSalida = new Date(y, m - 1, d + 1);
+                inputSalida.min = toInputDate(minSalida);
+                if (!inputSalida.value || inputSalida.value <= inputIngreso.value) inputSalida.value = toInputDate(minSalida);
             });
 
-            const selectCant = document.getElementById('cantidad-huespedes');
-            const containerHuespedes = document.getElementById('huespedes-container');
-
+            /* ---- Huéspedes ---- */
             function renderHuespedes() {
-                const cant = parseInt(selectCant.value) || 1;
+                const cant = parseInt(selectCant.value, 10) || 1;
                 let html = '';
                 for (let i = 1; i <= cant; i++) {
                     html += `
                         <div class="guest-card">
-                            <div class="guest-title">
-                                <span>Huésped ${i} ${i === 1 ? '(Principal / Responsable)' : ''}</span>
-                            </div>
+                            <div class="guest-title">Huésped ${i}${i === 1 ? ' (Principal / Responsable)' : ''}</div>
                             <div class="form-grid">
                                 <div class="form-group form-group-full">
-                                    <label class="form-label">Nombre y Apellido Completo *</label>
-                                    <input type="text" name="huesped_${i}_nombre" required class="form-input" placeholder="Nombre completo">
+                                    <label class="form-label" for="h${i}-nombre">Nombre y Apellido Completo *</label>
+                                    <input type="text" id="h${i}-nombre" required class="form-input" placeholder="Nombre completo" maxlength="120">
                                 </div>
                                 <div class="form-group">
-                                    <label class="form-label">Fecha de Nacimiento *</label>
-                                    <input type="date" name="huesped_${i}_nacimiento" required class="form-input">
+                                    <label class="form-label" for="h${i}-nacimiento">Fecha de Nacimiento *</label>
+                                    <input type="date" id="h${i}-nacimiento" required class="form-input" max="${toInputDate(hoy)}">
                                 </div>
                                 <div class="form-group">
-                                    <label class="form-label">DNI / Pasaporte / Documento *</label>
-                                    <input type="text" name="huesped_${i}_doc" required class="form-input" placeholder="Número de documento">
+                                    <label class="form-label" for="h${i}-doc">DNI / Pasaporte / Documento *</label>
+                                    <input type="text" id="h${i}-doc" required class="form-input" placeholder="Número de documento" maxlength="40">
                                 </div>
                             </div>
-                        </div>
-                    `;
+                        </div>`;
                 }
-                containerHuespedes.innerHTML = html;
+                contenedor.innerHTML = html;
             }
-
             selectCant.addEventListener('change', renderHuespedes);
             renderHuespedes();
 
-            const form = document.getElementById('reserva-form');
-            form.addEventListener('submit', async (e) => {
+            function mostrarError(msg) {
+                errorBox.textContent = msg;
+                errorBox.classList.toggle('hidden', !msg);
+            }
+
+            /* ---- Envío ---- */
+            form.addEventListener('submit', async e => {
                 e.preventDefault();
-                const btn = document.getElementById('btn-enviar');
+                mostrarError('');
+
+                if (!form.checkValidity()) { form.reportValidity(); return; }
+                if (inputSalida.value <= inputIngreso.value) return mostrarError('La fecha de salida debe ser posterior a la de ingreso.');
+                if ($('sitio-web').value) return;   // campo trampa completado: es un robot, se ignora en silencio
+                if (!db) return mostrarError('No hay conexión con el sistema de reservas. Intente nuevamente más tarde.');
+
                 btn.disabled = true;
                 btn.textContent = 'Guardando reserva...';
 
-                const cant = parseInt(selectCant.value);
-                const horarioLlegada = document.getElementById('horario-llegada').value;
+                const cant = parseInt(selectCant.value, 10);
                 const huespedes = [];
                 for (let i = 1; i <= cant; i++) {
                     huespedes.push({
-                        nombre: form.querySelector(`[name="huesped_${i}_nombre"]`).value.trim(),
-                        fechaNacimiento: form.querySelector(`[name="huesped_${i}_nacimiento"]`).value,
-                        documento: form.querySelector(`[name="huesped_${i}_doc"]`).value.trim()
+                        nombre: $(`h${i}-nombre`).value.trim(),
+                        fechaNacimiento: $(`h${i}-nacimiento`).value,
+                        documento: $(`h${i}-doc`).value.trim()
                     });
                 }
 
-                const fmtDate = iso => {
-                    if (!iso) return '';
-                    const [y, m, d] = iso.split('-');
-                    return `${d}/${m}/${y}`;
-                };
-
-                const refCodigo = 'ADC-' + Math.floor(1000 + Math.random() * 9000);
-
-                const reservaData = {
-                    fechaIngreso: fmtDate(inputIngreso.value),
-                    fechaSalida: fmtDate(inputSalida.value),
-                    horarioLlegada: horarioLlegada || 'No especificado',
-                    cantidadHuespedes: cant,
-                    huespedes: huespedes,
-                    contacto: {
-                        email: document.getElementById('email').value.trim(),
-                        telefono: document.getElementById('telefono').value.trim(),
-                        pais: document.getElementById('pais').value.trim(),
-                        direccion: document.getElementById('direccion').value.trim()
-                    },
-                    facturaA: {
-                        cuit: document.getElementById('cuit').value.trim() || null
-                    },
-                    estado: 'Confirmada',
-                    creadoEn: new Date().toISOString()
-                };
+                const codigo = 'ADC-' + Math.floor(100000 + Math.random() * 900000);
 
                 try {
-                    if (window.firebase) {
-                        const db = firebase.firestore();
-                        await db.collection('hotel_log').add({
-                            turno: 'Reserva Web',
-                            prioridad: 'Media',
-                            areaElemento: 'Reservas',
-                            nReserva: refCodigo,
-                            novedad: `Reserva online de ${cant} huésped(es). Ingreso: ${reservaData.fechaIngreso} (Llegada: ${reservaData.horarioLlegada}) - Salida: ${reservaData.fechaSalida}. Contacto: ${reservaData.contacto.email}`,
-                            notificadoA: 'Recepción, Reservas',
-                            reservaDetalle: reservaData,
-                            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                            userEmail: reservaData.contacto.email,
-                            estado: 'Pendiente',
-                            comentarios: []
-                        });
-                    }
+                    await db.collection(COLECCION_RESERVAS).add({
+                        nReserva: codigo,
+                        estado: 'Confirmada',
+                        reservaDetalle: {
+                            fechaIngreso: inputIngreso.value,     // se guardan como AAAA-MM-DD; el panel las muestra como DD/MM/AAAA
+                            fechaSalida: inputSalida.value,
+                            horarioLlegada: $('horario-llegada').value || 'No especificado',
+                            cantidadHuespedes: cant,
+                            huespedes,
+                            contacto: {
+                                email: $('email').value.trim(),
+                                telefono: $('telefono').value.trim(),
+                                pais: $('pais').value.trim(),
+                                direccion: $('direccion').value.trim()
+                            },
+                            facturaA: { cuit: $('cuit').value.trim() || null }
+                        },
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    });
 
                     form.classList.add('hidden');
-                    const exitoBox = document.getElementById('resultado-exito');
-                    exitoBox.classList.remove('hidden');
-                    document.getElementById('codigo-reserva-txt').textContent = `Código de Referencia: #${refCodigo}`;
+                    $('resultado-exito').classList.remove('hidden');
+                    $('codigo-reserva-txt').textContent = `Código de Referencia: #${codigo}`;
                 } catch (err) {
-                    console.error("Error al guardar reserva:", err);
-                    alert("Ocurrió un error al registrar la reserva. Por favor intente nuevamente.");
+                    console.error('Error al guardar la reserva:', err);
+                    mostrarError('Ocurrió un error al registrar la reserva. Por favor intente nuevamente.');
                     btn.disabled = false;
                     btn.textContent = 'Confirmar Reserva';
                 }

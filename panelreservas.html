@@ -71,6 +71,19 @@
 
         .empty-msg { text-align: center; padding: 3rem 1rem; opacity: 0.6; font-size: 1.05rem; grid-column: 1 / -1; }
 
+        /* Notas internas */
+        .card-notes { display: inline-block; margin-top: 0.4rem; font-size: 0.78rem; font-weight: 700; color: #b45309; background: rgba(245,158,11,0.16); border-radius: 999px; padding: 0.15rem 0.6rem; }
+        .nota { background: rgba(128,128,128,0.08); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 0.6rem 0.8rem; margin-bottom: 0.6rem; }
+        .nota-meta { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; font-size: 0.75rem; opacity: 0.75; margin-bottom: 0.3rem; }
+        .nota-texto { font-size: 0.92rem; line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere; }
+        .nota-del { background: none; border: none; color: #ef4444; cursor: pointer; font-size: 0.8rem; padding: 0; }
+        .nota-del:hover { text-decoration: underline; }
+        .notas-vacio { font-size: 0.88rem; opacity: 0.6; margin: 0 0 0.6rem; }
+        #nota-form textarea { width: 100%; box-sizing: border-box; padding: 0.6rem 0.8rem; border-radius: 8px; border: 1px solid rgba(128,128,128,0.3); background: var(--color-input-bg, transparent); color: inherit; font: inherit; font-size: 0.92rem; resize: vertical; }
+        #nota-form textarea:focus { outline: none; border-color: #0891b2; box-shadow: 0 0 0 3px rgba(8,145,178,0.15); }
+        #nota-form button { margin-top: 0.5rem; background: #0891b2; color: #fff; border: none; border-radius: 8px; padding: 0.55rem 1.1rem; font-weight: 600; cursor: pointer; }
+        #nota-form button:disabled { opacity: 0.6; cursor: wait; }
+
         /* Inicio de sesión */
         .login-box { max-width: 360px; margin: 12vh auto 0; background: var(--color-card-bg, #ffffff); border: 1px solid rgba(128,128,128,0.2); border-radius: 16px; padding: 2rem; box-shadow: 0 10px 25px rgba(0,0,0,0.08); }
         .login-box h2 { font-family: 'Playfair Display', serif; color: #0891b2; margin: 0 0 0.3rem; }
@@ -138,6 +151,15 @@
             </div>
 
             <div id="modal-body-content"></div>
+
+            <div class="modal-section">
+                <div class="modal-section-title">Notas internas</div>
+                <div id="notas-lista"></div>
+                <form id="nota-form">
+                    <textarea id="nota-texto" rows="2" maxlength="1000" required placeholder="Escribí una nota sobre esta reserva..."></textarea>
+                    <button type="submit" id="nota-btn">Agregar nota</button>
+                </form>
+            </div>
 
             <div class="actions-container">
                 <button type="button" id="btn-copy-full" class="btn-action btn-copy-all">📋 Copiar Datos</button>
@@ -250,13 +272,20 @@
                 codigo: x.nReserva || 'ADC-0000',
                 det: x.reservaDetalle || {},
                 fecha: x.timestamp?.toDate ? x.timestamp.toDate() : null,
-                resumen: x.novedad || ''
+                resumen: x.novedad || '',
+                notas: Array.isArray(x.notas) ? x.notas : []
             };
         };
 
         function combinar() {
             reservas = [...origen.nuevas, ...origen.legado].sort((a, b) => (b.fecha?.getTime() ?? 9e15) - (a.fecha?.getTime() ?? 9e15));
             filtrarYRenderizar();
+            // Si hay una reserva abierta, se actualizan sus notas (por ejemplo, si otra persona agregó una)
+            if (seleccionada) {
+                const actual = buscar(seleccionada.id, seleccionada.col);
+                if (actual) { seleccionada = actual; renderNotas(actual); }
+                else cerrarModal();   // la borraron
+            }
         }
 
         function escucharReservas() {
@@ -285,7 +314,8 @@
 
             const filtradas = reservas.filter(r => {
                 const h = r.det.huespedes?.[0] || {};
-                return `${h.nombre || ''} ${h.documento || ''} ${r.det.contacto?.email || ''} ${r.codigo} ${r.resumen}`.toLowerCase().includes(q);
+                const notas = r.notas.map(n => n.text).join(' ');
+                return `${h.nombre || ''} ${h.documento || ''} ${r.det.contacto?.email || ''} ${r.codigo} ${r.resumen} ${notas}`.toLowerCase().includes(q);
             });
 
             $('counter-badge').textContent = `${filtradas.length} Reserva(s) encontrada(s)`;
@@ -308,6 +338,7 @@
                         <div class="card-info-item">👥 Cantidad: <strong>${esc(r.det.cantidadHuespedes || 1)} huésped(es)</strong></div>
                         <div class="card-info-item">📅 Estadía: <strong>${esc(formatDate(r.det.fechaIngreso))} al ${esc(formatDate(r.det.fechaSalida))}</strong></div>
                         <div class="card-info-item">📧 Email: <strong>${esc(r.det.contacto?.email || '-')}</strong></div>
+                        ${r.notas.length ? `<span class="card-notes">📝 ${r.notas.length} nota(s)</span>` : ''}
                     </div>`;
             }).join('');
         }
@@ -353,12 +384,63 @@
                 </div>`;
 
             $('btn-delete-reserva').classList.toggle('hidden', !session?.puedeBorrar);
+            $('nota-texto').value = '';
+            renderNotas(r);
             $('detail-modal').classList.remove('hidden');
         }
 
         function cerrarModal() {
             seleccionada = null;
             $('detail-modal').classList.add('hidden');
+        }
+
+        /* ---------- Notas internas ---------- */
+        function renderNotas(r) {
+            const fmt = iso => { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); };
+            $('notas-lista').innerHTML = r.notas.length
+                ? r.notas.map((n, i) => `
+                    <div class="nota">
+                        <div class="nota-meta">
+                            <span><strong>${esc(n.user || 'Sistema')}</strong> · ${esc(fmt(n.timestamp))}</span>
+                            ${session?.puedeBorrar ? `<button type="button" class="nota-del" data-i="${i}">Borrar</button>` : ''}
+                        </div>
+                        <div class="nota-texto">${esc(n.text)}</div>
+                    </div>`).join('')
+                : '<p class="notas-vacio">Todavía no hay notas.</p>';
+        }
+
+        async function agregarNota(e) {
+            e.preventDefault();
+            if (!seleccionada || !session) return;
+            const texto = $('nota-texto').value.trim();
+            if (!texto) return;
+            const btn = $('nota-btn');
+            btn.disabled = true;
+            try {
+                await db.collection(seleccionada.col).doc(seleccionada.id).update({
+                    notas: firebase.firestore.FieldValue.arrayUnion({ text: texto, user: session.nombre, timestamp: new Date().toISOString() })
+                });
+                $('nota-texto').value = '';
+                toast('Nota agregada.');
+            } catch (err) {
+                console.error('Error al agregar la nota:', err);
+                toast('No se pudo agregar la nota: ' + err.message, true);
+            } finally { btn.disabled = false; }
+        }
+
+        async function borrarNota(i) {
+            if (!seleccionada || !session?.puedeBorrar) return;
+            const nota = seleccionada.notas[i];
+            if (!nota || !confirm('¿Borrar esta nota?')) return;
+            try {
+                await db.collection(seleccionada.col).doc(seleccionada.id).update({
+                    notas: firebase.firestore.FieldValue.arrayRemove(nota)
+                });
+                toast('Nota borrada.');
+            } catch (err) {
+                console.error('Error al borrar la nota:', err);
+                toast('No se pudo borrar la nota.', true);
+            }
         }
 
         async function eliminarReservaActual() {
@@ -395,7 +477,7 @@ Teléfono: ${det.contacto?.telefono || '-'}
 País: ${det.contacto?.pais || '-'}
 Dirección: ${det.contacto?.direccion || '-'}
 CUIT (Factura A): ${det.facturaA?.cuit || 'No solicitado'}
-===========================`;
+${r.notas.length ? '\nNOTAS:\n' + r.notas.map(n => `  - ${n.user || 'Sistema'}: ${n.text}`).join('\n') + '\n' : ''}===========================`;
 
             try {
                 await navigator.clipboard.writeText(texto);
@@ -415,6 +497,11 @@ CUIT (Factura A): ${det.facturaA?.cuit || 'No solicitado'}
             $('btn-delete-reserva').addEventListener('click', eliminarReservaActual);
             $('btn-copy-full').addEventListener('click', () => seleccionada && copiarTextoReserva(seleccionada));
             $('logout-btn').addEventListener('click', cerrarSesion);
+            $('nota-form').addEventListener('submit', agregarNota);
+            $('notas-lista').addEventListener('click', e => {
+                const b = e.target.closest('.nota-del');
+                if (b) borrarNota(Number(b.dataset.i));
+            });
 
             const abrirTarjeta = e => {
                 const card = e.target.closest('.reserva-card');

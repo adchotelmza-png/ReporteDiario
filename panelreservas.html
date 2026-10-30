@@ -57,12 +57,17 @@
         .detail-label { opacity: 0.7; font-weight: 500; }
         .detail-value { font-weight: 600; text-align: right; }
 
-        .btn-copy-all { background: #0891b2; color: white; border: none; padding: 0.8rem 1.2rem; border-radius: 8px; font-weight: 600; font-size: 0.95rem; cursor: pointer; width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 1rem; transition: filter 0.2s; }
+        .actions-container { display: flex; gap: 0.75rem; margin-top: 1rem; }
+        .btn-action { padding: 0.8rem 1.2rem; border-radius: 8px; font-weight: 600; font-size: 0.95rem; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; border: none; transition: filter 0.2s; }
+        .btn-copy-all { background: #0891b2; color: white; flex: 1; }
         .btn-copy-all:hover { filter: brightness(1.1); }
+        .btn-delete { background: #ef4444; color: white; }
+        .btn-delete:hover { filter: brightness(1.1); }
 
         .empty-msg { text-align: center; padding: 3rem 1rem; opacity: 0.6; font-size: 1.05rem; grid-column: 1 / -1; }
         
         .toast { position: fixed; bottom: 20px; right: 20px; background: #10b981; color: white; padding: 0.75rem 1.25rem; border-radius: 8px; font-size: 0.9rem; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 2000; animation: fadeIn 0.2s ease-out; }
+        .toast-error { background: #ef4444; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
     <link rel="icon" type="image/png" href="Icono.png">
@@ -99,9 +104,14 @@
 
             <div id="modal-body-content"></div>
 
-            <button type="button" id="btn-copy-full" class="btn-copy-all">
-                📋 Copiar Todos los Datos de la Reserva
-            </button>
+            <div class="actions-container">
+                <button type="button" id="btn-copy-full" class="btn-action btn-copy-all">
+                    📋 Copiar Datos
+                </button>
+                <button type="button" id="btn-delete-reserva" class="btn-action btn-delete" title="Eliminar Reserva">
+                    🗑️ Eliminar
+                </button>
+            </div>
         </div>
     </div>
 
@@ -112,6 +122,7 @@
 
     <script>
         let todasLasReservas = [];
+        let reservaSeleccionadaId = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
             if (window.APP_CONFIG && window.APP_CONFIG.FIREBASE_CONFIG) {
@@ -134,6 +145,8 @@
             document.getElementById('detail-modal').addEventListener('click', (e) => {
                 if (e.target.id === 'detail-modal') cerrarModal();
             });
+
+            document.getElementById('btn-delete-reserva').addEventListener('click', eliminarReservaActual);
         });
 
         function escucharReservas() {
@@ -191,7 +204,7 @@
                         </div>
                         <div class="card-guest-name">${principal.nombre}</div>
                         <div class="card-info-item">👤 Documento: <strong>${principal.documento}</strong></div>
-                        <div class="card-info-item">👥 Ocupación: <strong>${cant} huésped(es)</strong></div>
+                        <div class="card-info-item">👥 Cantidad: <strong>${cant} huésped(es)</strong></div>
                         <div class="card-info-item">📅 Estadía: <strong>${ingreso} al ${salida}</strong></div>
                         <div class="card-info-item">📧 Email: <strong>${det.contacto?.email || '-'}</strong></div>
                     </div>
@@ -207,7 +220,20 @@
             });
         }
 
+        function calcularEdad(fechaNacimientoStr) {
+            if (!fechaNacimientoStr) return '-';
+            const nac = new Date(fechaNacimientoStr);
+            const hoy = new Date();
+            let edad = hoy.getFullYear() - nac.getFullYear();
+            const m = hoy.getMonth() - nac.getMonth();
+            if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) {
+                edad--;
+            }
+            return isNaN(edad) ? '-' : `${edad} años`;
+        }
+
         function abrirModal(item) {
+            reservaSeleccionadaId = item.id;
             const det = item.reservaDetalle || {};
             const modal = document.getElementById('detail-modal');
             
@@ -225,17 +251,18 @@
                         <span class="detail-value">${h.documento}</span>
                     </div>
                     <div class="detail-row">
-                        <span class="detail-label">Fecha de Nacimiento:</span>
-                        <span class="detail-value">${formatDate(h.fechaNacimiento)}</span>
+                        <span class="detail-label">Fecha de Nacimiento (Edad):</span>
+                        <span class="detail-value">${formatDate(h.fechaNacimiento)} (${calcularEdad(h.fechaNacimiento)})</span>
                     </div>
                 </div>
             `).join('');
 
             document.getElementById('modal-body-content').innerHTML = `
                 <div class="modal-section">
-                    <div class="modal-section-title">Fechas de Estadía</div>
+                    <div class="modal-section-title">Fechas y Horario</div>
                     <div class="detail-row"><span class="detail-label">Check-in:</span><span class="detail-value">${det.fechaIngreso || '-'}</span></div>
                     <div class="detail-row"><span class="detail-label">Check-out:</span><span class="detail-value">${det.fechaSalida || '-'}</span></div>
+                    <div class="detail-row"><span class="detail-label">Horario Estimado de Llegada:</span><span class="detail-value">${det.horarioLlegada || 'No especificado'}</span></div>
                     <div class="detail-row"><span class="detail-label">Total Huéspedes:</span><span class="detail-value">${det.cantidadHuespedes || 1}</span></div>
                 </div>
 
@@ -260,7 +287,25 @@
         }
 
         function cerrarModal() {
+            reservaSeleccionadaId = null;
             document.getElementById('detail-modal').classList.add('hidden');
+        }
+
+        async function eliminarReservaActual() {
+            if (!reservaSeleccionadaId) return;
+
+            const confirmar = confirm("¿Estás seguro de que deseas eliminar esta reserva? Esta acción no se puede deshacer.");
+            if (!confirmar) return;
+
+            try {
+                const db = firebase.firestore();
+                await db.collection('hotel_log').doc(reservaSeleccionadaId).delete();
+                cerrarModal();
+                mostrarToast('Reserva eliminada correctamente.');
+            } catch (err) {
+                console.error("Error al eliminar la reserva:", err);
+                mostrarToast('No se pudo eliminar la reserva.', true);
+            }
         }
 
         function formatDate(str) {
@@ -272,12 +317,13 @@
         function copiarTextoReserva(item) {
             const det = item.reservaDetalle || {};
             const huespedesTexto = (det.huespedes || []).map((h, i) => 
-                `  - Huésped ${i+1}: ${h.nombre} | Doc: ${h.documento} | F.Nac: ${formatDate(h.fechaNacimiento)}`
+                `  - Huésped ${i+1}: ${h.nombre} | Doc: ${h.documento} | F.Nac: ${formatDate(h.fechaNacimiento)} (${calcularEdad(h.fechaNacimiento)})`
             ).join('\n');
 
             const texto = `=== RESERVA #${item.nReserva || 'ADC-0000'} ===
 Fecha Ingreso: ${det.fechaIngreso || '-'}
 Fecha Salida: ${det.fechaSalida || '-'}
+Horario Estimado de Llegada: ${det.horarioLlegada || 'No especificado'}
 Cantidad Huéspedes: ${det.cantidadHuespedes || 1}
 
 HUÉSPEDES:
@@ -296,9 +342,9 @@ CUIT (Factura A): ${det.facturaA?.cuit || 'No solicitado'}
             }).catch(err => console.error("Error al copiar:", err));
         }
 
-        function mostrarToast(msg) {
+        function mostrarToast(msg, esError = false) {
             const toast = document.createElement('div');
-            toast.className = 'toast';
+            toast.className = `toast ${esError ? 'toast-error' : ''}`;
             toast.textContent = msg;
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 3000);

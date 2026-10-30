@@ -38,10 +38,10 @@ const DRAFT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 /* Horas que una novedad "Pendiente" puede estar abierta antes de marcarse como atrasada (editable) */
 const STALE_HOURS = { Urgente: 4, Alta: 12, Media: 24, Baja: 48 };
 const usuarioDe = n => (n.userEmail ? String(n.userEmail).split('@')[0] : 'Sistema');   // nombre real de quien registró la novedad
-const estadoDe = n => n.estado === 'Completado' ? 'Completado' : 'Pendiente';   // los registros viejos "En curso" cuentan como Pendiente
+const estadoDe = n => n.estado === 'Resuelto' ? 'Resuelto' : 'Pendiente';   // los registros viejos "En curso" cuentan como Pendiente
 const novedadDate = n => n.timestamp?.toDate ? n.timestamp.toDate() : null;
 const isStale = n => {
-    if (n.estado === 'Completado') return false;
+    if (n.estado === 'Resuelto') return false;
     const d = novedadDate(n);
     return !!d && (Date.now() - d.getTime()) / 36e5 >= (STALE_HOURS[n.prioridad] ?? 24);
 };
@@ -75,7 +75,7 @@ function abrirModalDetalleMovil(n) {
         </div>
         <div style="display: flex; justify-content: space-between; border-top: 1px solid rgba(128,128,128,0.1); padding-top: 0.5rem;">
             <div><strong style="color:var(--color-texto-secundario); font-size:0.8rem; text-transform:uppercase;">Prioridad:</strong><br><span class="badge ${priorClass}" style="margin-top:2px; display:inline-block;">${escapeHTML(n.prioridad)}</span></div>
-            <div style="text-align:right;"><strong style="color:var(--color-texto-secundario); font-size:0.8rem; text-transform:uppercase;">Estado:</strong><br><strong style="color:${n.estado==='Completado'?'#10b981':'#f59e0b'}">${escapeHTML(estadoDe(n))}</strong></div>
+            <div style="text-align:right;"><strong style="color:var(--color-texto-secundario); font-size:0.8rem; text-transform:uppercase;">Estado:</strong><br><strong style="color:${n.estado==='Resuelto'?'#10b981':'#f59e0b'}">${escapeHTML(estadoDe(n))}</strong></div>
         </div>
         <div style="display: flex; justify-content: space-between; border-top: 1px solid rgba(128,128,128,0.1); padding-top: 0.5rem;">
             <div><strong style="color:var(--color-texto-secundario); font-size:0.8rem; text-transform:uppercase;">Área / Elemento:</strong><br>${escapeHTML(n.areaElemento || '-')}</div>
@@ -90,9 +90,9 @@ function abrirModalDetalleMovil(n) {
 
     const btnEstado = $('mobile-btn-estado');
     btnEstado.dataset.id = n.id;
-    btnEstado.textContent = n.estado === 'Completado' ? 'Marcar Pendiente' : 'Marcar Completado';
+    btnEstado.textContent = n.estado === 'Resuelto' ? 'Marcar Pendiente' : 'Marcar Resuelto';
     btnEstado.style.backgroundColor = btnEstado.style.borderColor = btnEstado.style.color = '';
-    if(n.estado === 'Completado') {
+    if(n.estado === 'Resuelto') {
         btnEstado.className = 'button button-orange';
     } else {
         btnEstado.className = 'button button-secondary';
@@ -138,7 +138,7 @@ export const UI = {
         let enCurso = 0, urgentes = 0, atrasadas = 0, deHoy = 0;
         currentNovedades.forEach(n => {
             if (toLocalISODate(novedadDate(n) || new Date()) === hoy) deHoy++;
-            if (n.estado === 'Completado') return;
+            if (n.estado === 'Resuelto') return;
             enCurso++;
             if (n.prioridad === 'Urgente') urgentes++;
             if (isStale(n)) atrasadas++;
@@ -491,7 +491,7 @@ export const UI = {
             const creatorText = `Creado por: ${n.userEmail ? n.userEmail.split('@')[0] : 'Sistema'} el ${formatFullTimestamp(n.timestamp?.toDate?.())}`;
             const tooltipTitle = escapeHTML(lastEditorText ? `${lastEditorText} | ${creatorText}` : creatorText);
 
-            const compTit = n.estado === 'Completado' && n.completadoPor ? escapeHTML(`Completado por ${n.completadoPor} el ${formatFullTimestamp(n.completadoEn?.toDate?.())}`) : '';
+            const compTit = n.estado === 'Resuelto' && n.ResueltoPor ? escapeHTML(`Resuelto por ${n.ResueltoPor} el ${formatFullTimestamp(n.ResueltoEn?.toDate?.())}`) : '';
             const priorClass = { 'Urgente':'badge-urgente', 'Alta':'badge-alta', 'Media':'badge-media' }[n.prioridad] || 'badge-baja';
             const count = n.comentarios?.length || 0;
             const stale = isStale(n);
@@ -509,7 +509,7 @@ export const UI = {
                 <td class="cell-novedad" title="${escapeHTML(n.novedad)}">${resaltar(n.novedad, searchQuery)}</td>
                 <td class="cell-notificado">${n.notificadoA ? resaltar(n.notificadoA, searchQuery) : '-'}</td>
                 <td class="cell-estado">
-                    <button type="button" data-id="${n.id}" ${can('estado') ? '' : 'disabled'} class="estado-btn estado-pill ${n.estado==='Completado' ? 'is-completado' : 'is-pendiente'}" title="${compTit || (can('estado') ? 'Clic para marcar como ' + (n.estado==='Completado' ? 'Pendiente' : 'Completado') : '')}"><span class="estado-dot"></span>${n.estado==='Completado' ? 'Completado' : 'Pendiente'}</button>
+                    <button type="button" data-id="${n.id}" ${can('estado') ? '' : 'disabled'} class="estado-btn estado-pill ${n.estado==='Resuelto' ? 'is-Resuelto' : 'is-pendiente'}" title="${compTit || (can('estado') ? 'Clic para marcar como ' + (n.estado==='Resuelto' ? 'Pendiente' : 'Resuelto') : '')}"><span class="estado-dot"></span>${n.estado==='Resuelto' ? 'Resuelto' : 'Pendiente'}</button>
                 </td>
                 <td class="cell-comments">
                     <button data-id="${n.id}" class="button-icon comments-novedad-btn ${count>0?'button-primary':'button-secondary'}" title="Respuestas">
@@ -632,18 +632,18 @@ export const UI = {
         if (devolverFoco) btn?.focus?.();
     },
 
-    /* ---------- Estado: un clic alterna Pendiente / Completado ---------- */
+    /* ---------- Estado: un clic alterna Pendiente / Resuelto ---------- */
     async toggleEstado(btn) {
         if (!can('estado')) return;
         const id = btn.dataset.id, n = allNovedadesMap.get(id);
         if (!n) return;
-        const nuevo = n.estado === 'Completado' ? 'Pendiente' : 'Completado';
+        const nuevo = n.estado === 'Resuelto' ? 'Pendiente' : 'Resuelto';
         btn.disabled = true;
         this._refocusEstado = id;
         setTimeout(() => { if (this._refocusEstado === id) this._refocusEstado = null; }, 2000);
         try {
             await FirebaseService.changeEstadoNovedad(id, nuevo);
-            this.toast(nuevo === 'Completado' ? 'Novedad marcada como Completada' : 'Novedad marcada como Pendiente', 'success');
+            this.toast(nuevo === 'Resuelto' ? 'Novedad marcada como Completada' : 'Novedad marcada como Pendiente', 'success');
         } catch (err) {
             this.showMessage('Error', 'No se pudo cambiar el estado: ' + err.message);
             this.applyFiltersAndRender(false);
@@ -687,7 +687,7 @@ export const UI = {
         const id = e.currentTarget.dataset.id, n = allNovedadesMap.get(id);
         this.closeModal($('mobile-detail-modal'));
         if (!n) return;
-        try { const nuevo = n.estado === 'Completado' ? 'Pendiente' : 'Completado'; await FirebaseService.changeEstadoNovedad(id, nuevo); this.toast(nuevo === 'Completado' ? 'Novedad marcada como Completada' : 'Novedad marcada como Pendiente', 'success'); }
+        try { const nuevo = n.estado === 'Resuelto' ? 'Pendiente' : 'Resuelto'; await FirebaseService.changeEstadoNovedad(id, nuevo); this.toast(nuevo === 'Resuelto' ? 'Novedad marcada como Completada' : 'Novedad marcada como Pendiente', 'success'); }
         catch (err) { this.showMessage('Error', 'No se pudo cambiar el estado: ' + err.message); }
     },
 
@@ -919,7 +919,7 @@ export const UI = {
             + bloques.map(b => `<p style="margin:0 0 3pt 0;${BA}"><span style="${BA}"><b>${escapeHTML(b.area)}</b></span></p>`
                 + `<ul style="margin-top:0;margin-bottom:11pt;${N}">`
                 + b.lineas.map(l => {
-                    const col = l.estado === 'COMPLETADO' ? '#00B050' : '#FF0000';
+                    const col = l.estado === 'Resuelto' ? '#00B050' : '#FF0000';
                     return `<li style="margin-bottom:3pt;${N}"><span style="${B}"><b>${escapeHTML(l.negrita)}</b></span>`
                         + `<span style="${N}"> ${conBr(l.cuerpo)} </span>`
                         + `<span style="${F}font-weight:bold;color:${col};"><font color="${col}"><b>${l.estado}</b></font></span>`

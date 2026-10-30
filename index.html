@@ -496,6 +496,12 @@
                     <div id="current-shift" class="turno-display">--:--</div>
                 </div>
 
+                <div id="fecha-pasada-group" class="form-group form-group-full hidden">
+                    <label for="fechaPasada" class="form-label">Fecha y hora del registro (solo Admin)</label>
+                    <input type="datetime-local" id="fechaPasada" name="fechaPasada" class="form-input">
+                    <p class="form-label" style="font-size: 0.75rem; margin-top: 0.35rem; color: var(--color-texto-secundario);">Dejalo vacío para registrar con la fecha y hora actuales. El turno se calcula según la fecha elegida.</p>
+                </div>
+
                 <div class="form-group form-group-full">
                     <label for="novedad" class="form-label">Detalles de la Novedad (Requerido)</label>
                     <textarea id="novedad" name="novedad" rows="3" required class="form-textarea" placeholder="Ej: Problemas con la tarjeta de acceso..."></textarea>
@@ -962,8 +968,8 @@
     </script>
 
     <script type="module">
-        import { FirebaseService } from './firebase-service.js';
-        import { UI } from './ui.js?v=20261030c';
+        import { FirebaseService } from './firebase-service.js?v=20261030d';
+        import { UI } from './ui.js?v=20261030d';
         UI.init();
         FirebaseService.init(session => UI.onAuthSuccess(session), () => UI.onAuthError(), err => UI.onInitError(err))
             .catch(err => UI.onInitError(err));

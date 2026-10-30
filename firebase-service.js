@@ -7,7 +7,7 @@ import {
 import { 
     getFirestore, doc, setDoc, onSnapshot, collection, query, 
     orderBy, limit, serverTimestamp, updateDoc, addDoc, 
-    getDocs, getDoc, deleteDoc, writeBatch, arrayUnion 
+    getDocs, getDoc, deleteDoc, writeBatch, arrayUnion, Timestamp 
 } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
 const isCanvasEnvironment = typeof __app_id !== 'undefined';
@@ -277,10 +277,14 @@ export const FirebaseService = {
         }, onError);
     },
 
-    async addNovedad(payload) {
+    /* fechaManual (Date, opcional): solo la respeta si el usuario es Admin; permite cargar una novedad con fecha anterior */
+    async addNovedad(payload, fechaManual = null) {
+        const retroactiva = !!fechaManual && !!this.session?.esAdmin;
+        if (retroactiva && (isNaN(fechaManual) || fechaManual > new Date())) throw new Error('La fecha elegida no es válida o es futura.');
         return await addDoc(collection(db, getPath(COLLECTION_NAME)), {
-            ...payload, timestamp: serverTimestamp(), userId: this.user.uid,
-            userEmail: this.email, userUsuario: this.session?.usuario || null, estado: 'Pendiente', comentarios: []
+            ...payload, timestamp: retroactiva ? Timestamp.fromDate(fechaManual) : serverTimestamp(), userId: this.user.uid,
+            userEmail: this.email, userUsuario: this.session?.usuario || null, estado: 'Pendiente', comentarios: [],
+            ...(retroactiva ? { fechaManual: true, cargadaEn: serverTimestamp() } : {})
         });
     },
 

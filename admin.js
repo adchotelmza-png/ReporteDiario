@@ -2,7 +2,7 @@
    admin.js — Módulo de administración de usuarios y categorías
    Solo visible para el Admin y protegido con la clave del Admin.
    ===================================================================== */
-import { FirebaseService, PERMISOS } from './firebase-service.js';
+import { FirebaseService, PERMISOS } from './firebase-service.js?v=20261030d';
 
 const $ = id => document.getElementById(id);
 const esc = str => !str ? '' : String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));

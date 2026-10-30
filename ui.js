@@ -1,8 +1,8 @@
 /* =====================================================================
    ui.js — Interfaz de usuario, accesibilidad y alarmas
    ===================================================================== */
-import { FirebaseService, PERMISOS } from './firebase-service.js';
-import { AdminPanel } from './admin.js';
+import { FirebaseService, PERMISOS } from './firebase-service.js?v=20261030d';
+import { AdminPanel } from './admin.js?v=20261030d';
 
 const can = p => FirebaseService.can(p);
 const $= id => document.getElementById(id); const $$ = s => document.querySelectorAll(s);
@@ -292,6 +292,7 @@ export const UI = {
             if (chip) this.toggleSummaryFilter(chip.dataset.kpi);
         });
         ['input', 'change'].forEach(ev => $('novedad-form').addEventListener(ev, () => this.saveDraft()));
+        $('fechaPasada').addEventListener('input', e => { $('current-shift').textContent = this.calcularTurno(e.target.value ? new Date(e.target.value) : undefined); });
         $('discard-draft-btn').addEventListener('click', () => {
             this.clearDraft();
             $('novedad-form').reset();
@@ -721,6 +722,12 @@ export const UI = {
             $('draft-notice').classList.add('hidden');
             this.restoreDraft();
         }
+        /* Solo el Admin y solo en novedades nuevas: poder elegir una fecha/hora anterior */
+        const fp = $('fechaPasada'), fpGroup = $('fecha-pasada-group');
+        const pad = n => String(n).padStart(2, '0'), ahora = new Date();
+        fp.max = `${ahora.getFullYear()}-${pad(ahora.getMonth() + 1)}-${pad(ahora.getDate())}T${pad(ahora.getHours())}:${pad(ahora.getMinutes())}`;
+        fp.value = '';
+        fpGroup.classList.toggle('hidden', !(!novedad && FirebaseService.session?.esAdmin));
         this.actualizarColorPrioridad($('prioridad'));
         this.openModal($('novedad-modal'), 'areaElemento');
     },
@@ -735,7 +742,16 @@ export const UI = {
         try {
             const id = $('novedad-id').value;
             if (id) await FirebaseService.updateNovedad(id, payload);
-            else { await FirebaseService.addNovedad({ ...payload, turno: this.calcularTurno() }); this.clearDraft(); }
+            else {
+                /* Fecha anterior a elección: solo Admin */
+                let fechaManual = null;
+                if (FirebaseService.session?.esAdmin && fd.get('fechaPasada')) {
+                    fechaManual = new Date(fd.get('fechaPasada'));
+                    if (isNaN(fechaManual) || fechaManual > new Date()) throw new Error('La fecha elegida no es válida o es futura.');
+                }
+                await FirebaseService.addNovedad({ ...payload, turno: this.calcularTurno(fechaManual || undefined) }, fechaManual);
+                this.clearDraft();
+            }
             this.closeModal($('novedad-modal'));
             this.toast(id ? 'Novedad actualizada' : 'Novedad guardada', 'success');
         } catch (err) { this.showMessage('Error', err.message); }
@@ -1148,9 +1164,9 @@ export const UI = {
         if (map[el.value]) el.classList.add(map[el.value]);
     },
 
-    calcularTurno() {
-        /* Turnos: Mañana 06:45-15:45 · Tarde 15:45-23:15 · Noche 23:15-06:45 (sin superposición). */
-        const now = new Date(), min = now.getHours() * 60 + now.getMinutes();
+    calcularTurno(fecha) {
+        /* Turnos: Mañana 06:45-15:45 · Tarde 15:45-23:15 · Noche 23:15-06:45 (sin superposición). Sin argumento usa la hora actual. */
+        const now = fecha instanceof Date && !isNaN(fecha) ? fecha : new Date(), min = now.getHours() * 60 + now.getMinutes();
         return (min >= 405 && min < 945) ? 'Mañana' : (min >= 945 && min < 1395) ? 'Tarde' : 'Noche';
     }
 };

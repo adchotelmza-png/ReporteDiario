@@ -80,6 +80,9 @@
         /* --- Módulo de administración --- */
         #open-admin-btn { display: none; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 0.8rem; font-size: 0.85rem; margin: 0; }
         .is-admin #open-admin-btn { display: inline-flex; }
+        /* Barra de desplazamiento horizontal superior de la tabla (sincronizada con la de abajo) */
+        #table-scroll-top { overflow-x: auto; overflow-y: hidden; height: 16px; margin-bottom: 4px; display: none; }
+        #table-scroll-top > div { height: 1px; }
         #user-info.clickable { cursor: pointer; }
         #user-info.clickable:hover { filter: brightness(1.15); }
         #user-menu { position: absolute; top: 40px; left: 0; z-index: 10004; padding: 0.4rem; min-width: 11rem; box-shadow: 0 6px 20px rgba(0,0,0,.35); }
@@ -658,6 +661,31 @@
                 try { localStorage.setItem('theme', current); } catch (e) {}
                 apply(current);
             });
+        })();
+    </script>
+
+    <script>
+        /* Barra de desplazamiento horizontal también ARRIBA de la tabla de novedades */
+        (function () {
+            function init() {
+                var cont = document.querySelector('.scrollable-table-container');
+                if (!cont || document.getElementById('table-scroll-top')) return;
+                var table = cont.querySelector('table');
+                var top = document.createElement('div'), inner = document.createElement('div');
+                top.id = 'table-scroll-top'; top.setAttribute('aria-hidden', 'true'); top.appendChild(inner);
+                cont.parentNode.insertBefore(top, cont);
+                function medir() {
+                    inner.style.width = (table ? table.scrollWidth : cont.scrollWidth) + 'px';
+                    top.style.display = cont.scrollWidth > cont.clientWidth + 1 ? 'block' : 'none';
+                }
+                top.addEventListener('scroll', function () { if (cont.scrollLeft !== top.scrollLeft) cont.scrollLeft = top.scrollLeft; });
+                cont.addEventListener('scroll', function () { if (top.scrollLeft !== cont.scrollLeft) top.scrollLeft = cont.scrollLeft; });
+                window.addEventListener('resize', medir);
+                if (window.ResizeObserver) { var ro = new ResizeObserver(medir); ro.observe(cont); if (table) ro.observe(table); }
+                else setInterval(medir, 1000);
+                medir();
+            }
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
         })();
     </script>
 

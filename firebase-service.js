@@ -39,6 +39,10 @@ export const PERMISOS = [
 /* Formato de clave: 1 mayúscula + minúsculas + 4 números (ej.: Lionel1234) */
 export const CLAVE_REGEX = /^[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+\d{4}$/;
 export const CLAVE_EJEMPLO = 'Lionel1234';
+/* Turnos del Check List. Cada tarea tiene un campo "turnos" (ej.: ['Mañana','Noche']).
+   Las tareas viejas, que no tienen ese campo, se consideran de los tres turnos. */
+export const TURNOS = ['Mañana', 'Tarde', 'Noche'];
+export const turnosDe = item => Array.isArray(item?.turnos) ? item.turnos.filter(t => TURNOS.includes(t)) : [...TURNOS];
 const userId = u => String(u || '').trim().toLowerCase();
 export const slug = t => String(t || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const getPath = (colName) => isCanvasEnvironment ? `artifacts/${appId}/public/data/${colName}` : colName;
@@ -208,11 +212,19 @@ export const FirebaseService = {
         const q = query(collection(db, getPath(CHECKLIST_COLLECTION_NAME)), orderBy('orden', 'asc'));
         unsubChecklist = onSnapshot(q, snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))), onError);
     },
-    async addChecklistItem(tarea) {
+    async addChecklistItem(tarea, turnos = TURNOS) {
         if (!this.puedeEditarChecklist()) throw new Error('No tenés permiso para editar el Check List.');
         const texto = String(tarea || '').trim();
         if (!texto) throw new Error('Escribí la tarea.');
-        return await addDoc(collection(db, getPath(CHECKLIST_COLLECTION_NAME)), { tarea: texto, orden: Date.now(), creadoPor: this.email, creadoEn: serverTimestamp() });
+        const t = TURNOS.filter(x => (turnos || []).includes(x));
+        if (!t.length) throw new Error('Marcá al menos un turno para la tarea.');
+        return await addDoc(collection(db, getPath(CHECKLIST_COLLECTION_NAME)), { tarea: texto, turnos: t, orden: Date.now(), creadoPor: this.email, creadoEn: serverTimestamp() });
+    },
+    /* Define a qué turnos pertenece una tarea (se guarda la lista completa, en el orden Mañana / Tarde / Noche) */
+    async setChecklistTurnos(id, turnos) {
+        if (!this.puedeEditarChecklist()) throw new Error('No tenés permiso para editar el Check List.');
+        const t = TURNOS.filter(x => (turnos || []).includes(x));
+        return await updateDoc(doc(db, getPath(CHECKLIST_COLLECTION_NAME), id), { turnos: t, editadoPor: this.email, editadoEn: serverTimestamp() });
     },
     async updateChecklistItem(id, tarea) {
         if (!this.puedeEditarChecklist()) throw new Error('No tenés permiso para editar el Check List.');

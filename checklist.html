@@ -15,7 +15,7 @@
         .hidden { display: none !important; }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen p-2 sm:p-4 md:p-8 font-sans text-gray-800 overflow-x-hidden">
+<body class="bg-gray-100 min-h-screen p-2 sm:p-3 md:p-4 font-sans text-gray-800 overflow-x-hidden">
 
     <!-- Cargando -->
     <div id="loading-screen" class="max-w-sm mx-auto mt-16 text-center text-gray-500 font-semibold">Cargando check list…</div>
@@ -38,7 +38,7 @@
     </div>
 
     <!-- Aplicación -->
-    <div id="app" class="hidden max-w-5xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
+    <div id="app" class="hidden w-full bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
 
         <!-- Encabezado -->
         <div class="bg-slate-800 text-white p-4 md:p-6 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3 md:gap-4">
@@ -117,6 +117,12 @@
                     <input type="text" id="nueva-tarea" placeholder="Escribí la tarea y presioná Agregar" maxlength="400" class="flex-1 min-w-0 p-2 border-b-2 border-gray-300 bg-transparent focus:border-blue-500 outline-none font-medium">
                     <button id="btn-agregar" type="button" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold">Agregar tarea</button>
                 </div>
+                <div class="flex flex-wrap items-center gap-x-5 gap-y-1 mt-3">
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Asignar a:</span>
+                    <label class="flex items-center gap-1.5 text-sm font-semibold cursor-pointer"><input type="checkbox" class="nueva-turno w-4 h-4" value="Mañana" checked> Mañana</label>
+                    <label class="flex items-center gap-1.5 text-sm font-semibold cursor-pointer"><input type="checkbox" class="nueva-turno w-4 h-4" value="Tarde" checked> Tarde</label>
+                    <label class="flex items-center gap-1.5 text-sm font-semibold cursor-pointer"><input type="checkbox" class="nueva-turno w-4 h-4" value="Noche" checked> Noche</label>
+                </div>
                 <p id="editor-msg" class="hidden text-sm text-red-600 mt-2"></p>
             </div>
 
@@ -125,13 +131,13 @@
 
             <div class="p-4 md:p-6 bg-gray-50 border-t border-gray-200 text-xs font-bold text-gray-400 uppercase text-center md:text-left">
                 <p id="editor-count">0 TAREAS</p>
-                <p>Los cambios se ven al instante en la sección Recepcionista de todos los usuarios.</p>
+                <p>Marcá con X en qué turno(s) va cada tarea. Los cambios se ven al instante en la sección Recepcionista de todos los usuarios.</p>
             </div>
         </section>
     </div>
 
     <script type="module">
-        import { FirebaseService } from './firebase-service.js';
+        import { FirebaseService, TURNOS, turnosDe } from './firebase-service.js';
 
         const $ = id => document.getElementById(id);
         const escapeHTML = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -202,9 +208,13 @@
             activeTab === 'jefe' ? renderEditor() : renderTable();
         }
 
+        /* Tareas que le tocan al turno elegido en el selector del recepcionista */
+        const visibles = () => items.filter(i => turnosDe(i).includes($('input-turno').value));
+
         function renderTable() {
+            const lista = visibles();
             let completed = 0;
-            $('checklist-body').innerHTML = items.map((item, idx) => {
+            $('checklist-body').innerHTML = lista.map((item, idx) => {
                 const on = !!checks[item.id];
                 if (on) completed++;
                 return `
@@ -218,18 +228,32 @@
                         </td>
                     </tr>`;
             }).join('');
-            $('empty-msg').classList.toggle('hidden', items.length > 0);
-            $('checklist-table').classList.toggle('hidden', items.length === 0);
-            $('footer-status').textContent = `ESTADO: ${completed} TAREAS COMPLETADAS DE ${items.length}`;
+            $('empty-msg').textContent = items.length
+                ? `No hay tareas asignadas al turno ${$('input-turno').value}.`
+                : 'Todavía no hay tareas cargadas. El Jefe de Recepción debe armar el check list.';
+            $('empty-msg').classList.toggle('hidden', lista.length > 0);
+            $('checklist-table').classList.toggle('hidden', lista.length === 0);
+            $('footer-status').textContent = `ESTADO: ${completed} TAREAS COMPLETADAS DE ${lista.length}`;
         }
 
         const BTN = 'px-2.5 py-1.5 rounded-md text-sm font-semibold border';
         function renderEditor() {
             $('editor-list').innerHTML = items.map((item, idx) => {
                 const editando = item.id === editingId;
+                const turnos = turnosDe(item);
+                const aviso = turnos.length ? '' : '<p class="text-xs font-bold text-red-600 mt-1">⚠ Sin turno asignado: ningún recepcionista ve esta tarea</p>';
                 const cuerpo = editando
                     ? `<textarea data-edit-input rows="2" maxlength="400" class="w-full p-2 border-2 border-blue-300 rounded-md outline-none focus:border-blue-500 text-sm md:text-base">${escapeHTML(editingText)}</textarea>`
-                    : `<p class="text-sm md:text-base text-gray-700 break-words">${escapeHTML(item.tarea)}</p>`;
+                    : `<p class="text-sm md:text-base text-gray-700 break-words">${escapeHTML(item.tarea)}</p>${aviso}`;
+                /* Tres columnas: Mañana / Tarde / Noche. Un clic marca o desmarca la X y se guarda al instante */
+                const columnas = TURNOS.map(t => {
+                    const on = turnos.includes(t);
+                    return `<div class="w-14 flex flex-col items-center gap-0.5">
+                        <span class="text-[10px] font-bold text-gray-400 uppercase">${t}</span>
+                        <button type="button" data-act="turno" data-turno="${t}" aria-pressed="${on}" title="${on ? 'Quitar del' : 'Asignar al'} turno ${t}"
+                            class="w-9 h-9 rounded-md border-2 text-lg font-bold leading-none transition-colors ${on ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-gray-300 text-transparent hover:border-blue-400'}">X</button>
+                    </div>`;
+                }).join('');
                 const acciones = editando
                     ? `<button data-act="guardar" class="${BTN} bg-blue-600 text-white border-blue-600">Guardar</button>
                        <button data-act="cancelar" class="${BTN} bg-white text-gray-600 border-gray-300">Cancelar</button>`
@@ -238,12 +262,13 @@
                        <button data-act="editar" class="${BTN} bg-white text-blue-700 border-blue-300">Modificar</button>
                        <button data-act="borrar" class="${BTN} bg-white text-red-600 border-red-300">Eliminar</button>`;
                 return `
-                    <div data-id="${escapeHTML(item.id)}" class="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-3 p-3 sm:p-4 border-b border-gray-100">
+                    <div data-id="${escapeHTML(item.id)}" class="flex flex-col lg:flex-row lg:items-start gap-2 lg:gap-4 p-3 sm:p-4 border-b border-gray-100">
                         <div class="flex gap-3 flex-1 min-w-0">
                             <span class="w-8 shrink-0 text-center font-bold text-gray-300 pt-1">${idx + 1}</span>
                             <div class="flex-1 min-w-0">${cuerpo}</div>
                         </div>
-                        <div class="flex flex-wrap gap-1.5 sm:justify-end">${acciones}</div>
+                        <div class="flex gap-1 shrink-0 pl-11 lg:pl-0">${columnas}</div>
+                        <div class="flex flex-wrap gap-1.5 pl-11 lg:pl-0 lg:justify-end lg:pt-5">${acciones}</div>
                     </div>`;
             }).join('');
             $('editor-empty').classList.toggle('hidden', items.length > 0);
@@ -261,16 +286,22 @@
         async function agregar() {
             const input = $('nueva-tarea');
             msg('');
-            try { await FirebaseService.addChecklistItem(input.value); input.value = ''; input.focus(); }
+            const turnos = Array.from(document.querySelectorAll('.nueva-turno:checked')).map(c => c.value);
+            try { await FirebaseService.addChecklistItem(input.value, turnos); input.value = ''; input.focus(); }
             catch (e) { msg(e.message); }
         }
 
-        async function accionEditor(act, id) {
+        async function accionEditor(act, id, turno = null) {
             msg('');
             const idx = items.findIndex(i => i.id === id), item = items[idx];
             if (!item) return;
             try {
-                if (act === 'editar') { editingId = id; editingText = item.tarea; renderEditor(); }
+                if (act === 'turno') {
+                    const actuales = turnosDe(item);
+                    const nuevos = actuales.includes(turno) ? actuales.filter(t => t !== turno) : [...actuales, turno];
+                    await FirebaseService.setChecklistTurnos(id, nuevos);
+                }
+                else if (act === 'editar') { editingId = id; editingText = item.tarea; renderEditor(); }
                 else if (act === 'cancelar') { editingId = null; renderEditor(); }
                 else if (act === 'guardar') {
                     await FirebaseService.updateChecklistItem(id, editingText);
@@ -297,7 +328,7 @@
                 [],
                 ['Nº', 'TAREA', 'COMPLETADO']
             ];
-            items.forEach((item, idx) => rows.push([idx + 1, item.tarea, checks[item.id] ? 'SI' : 'NO']));
+            visibles().forEach((item, idx) => rows.push([idx + 1, item.tarea, checks[item.id] ? 'SI' : 'NO']));
             const ws = XLSX.utils.aoa_to_sheet(rows), wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, 'CheckList');
             ws['!cols'] = [{ wch: 5 }, { wch: 80 }, { wch: 12 }];
@@ -313,13 +344,14 @@
             checks[tr.dataset.id] = !checks[tr.dataset.id];
             renderTable();
         });
+        $('input-turno').addEventListener('change', renderTable);
         $('btn-excel').addEventListener('click', exportarAExcel);
         $('btn-agregar').addEventListener('click', agregar);
         $('nueva-tarea').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); agregar(); } });
         $('editor-list').addEventListener('click', e => {
             const b = e.target.closest('button[data-act]');
             const fila = e.target.closest('[data-id]');
-            if (b && fila && !b.disabled) accionEditor(b.dataset.act, fila.dataset.id);
+            if (b && fila && !b.disabled) accionEditor(b.dataset.act, fila.dataset.id, b.dataset.turno || null);
         });
         $('editor-list').addEventListener('input', e => { if (e.target.matches('[data-edit-input]')) editingText = e.target.value; });
         $('editor-list').addEventListener('keydown', e => {

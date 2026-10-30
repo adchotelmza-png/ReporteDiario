@@ -80,9 +80,26 @@
         /* --- Módulo de administración --- */
         #open-admin-btn { display: none; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 0.8rem; font-size: 0.85rem; margin: 0; }
         .is-admin #open-admin-btn { display: inline-flex; }
-        /* Barra de desplazamiento horizontal superior de la tabla (sincronizada con la de abajo) */
-        #table-scroll-top { overflow-x: auto; overflow-y: hidden; height: 16px; margin-bottom: 4px; display: none; }
-        #table-scroll-top > div { height: 1px; }
+        /* ===== Desplazamiento horizontal de la tabla de novedades =====
+           · Barra fina propia, siempre a la vista pegada al borde inferior de la pantalla (reemplaza a la de arriba y a la nativa)
+           · Se engrosa al pasar el mouse · colores según el tema (oscuro por defecto / claro)
+           · Sombras en los bordes que avisan que hay más columnas ocultas */
+        :root { --tsb-rail: rgba(255,255,255,.10); --tsb-thumb: rgba(148,163,184,.55); --tsb-thumb-hover: #0891b2; --tsb-strip: rgba(30,32,36,.78); --tsb-shadow: rgba(0,0,0,.65); }
+        [data-theme="light"] { --tsb-rail: rgba(0,0,0,.08); --tsb-thumb: rgba(71,85,105,.45); --tsb-thumb-hover: #0891b2; --tsb-strip: rgba(255,255,255,.85); --tsb-shadow: rgba(0,0,0,.22); }
+        .table-shadow-wrap { position: relative; }
+        .table-shadow-wrap::before, .table-shadow-wrap::after { content: ''; position: absolute; top: 0; bottom: 0; width: 34px; pointer-events: none; z-index: 6; opacity: 0; transition: opacity .2s ease; }
+        .table-shadow-wrap::before { left: 0; background: linear-gradient(to right, var(--tsb-shadow), transparent); }
+        .table-shadow-wrap::after { right: 0; background: linear-gradient(to left, var(--tsb-shadow), transparent); }
+        .table-shadow-wrap.can-left::before, .table-shadow-wrap.can-right::after { opacity: 1; }
+        .scrollable-table-container.tsb-active { scrollbar-width: none; -ms-overflow-style: none; }
+        .scrollable-table-container.tsb-active::-webkit-scrollbar { display: none; }
+        #tsb-wrap { display: none; height: 20px; }
+        #tsb { position: relative; height: 20px; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; outline: none; }
+        #tsb.is-fixed { position: fixed; bottom: 0; z-index: 30; background: var(--tsb-strip); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); border-top: 1px solid rgba(128,128,128,.25); }
+        #tsb .tsb-rail { position: absolute; left: 8px; right: 8px; bottom: 6px; height: 6px; border-radius: 999px; background: var(--tsb-rail); transition: height .15s ease, bottom .15s ease; }
+        #tsb:hover .tsb-rail, #tsb:focus-visible .tsb-rail, #tsb.is-dragging .tsb-rail { height: 12px; bottom: 3px; }
+        #tsb .tsb-thumb { position: absolute; left: 0; top: 0; height: 100%; border-radius: 999px; background: var(--tsb-thumb); transition: background .15s ease; will-change: transform; }
+        #tsb:hover .tsb-thumb, #tsb.is-dragging .tsb-thumb, #tsb:focus-visible .tsb-thumb { background: var(--tsb-thumb-hover); }
         /* Columnas de la tabla ajustables: líneas verticales grises claras y manijas para arrastrar */
         .novedades-table th, .novedades-table td { border-right: 1px solid rgba(128,128,128,.28); }
         .novedades-table th:last-child, .novedades-table td:last-child { border-right: 0; }
@@ -680,25 +697,100 @@
     </script>
 
     <script>
-        /* Barra de desplazamiento horizontal también ARRIBA de la tabla de novedades */
+        /* Barra de desplazamiento horizontal de la tabla de novedades:
+           fina, siempre visible en el borde inferior de la pantalla (mientras la tabla se vea), con sombras laterales. */
         (function () {
             function init() {
                 var cont = document.querySelector('.scrollable-table-container');
-                if (!cont || document.getElementById('table-scroll-top')) return;
+                if (!cont || document.getElementById('tsb')) return;
                 var table = cont.querySelector('table');
-                var top = document.createElement('div'), inner = document.createElement('div');
-                top.id = 'table-scroll-top'; top.setAttribute('aria-hidden', 'true'); top.appendChild(inner);
-                cont.parentNode.insertBefore(top, cont);
-                function medir() {
-                    inner.style.width = (table ? table.scrollWidth : cont.scrollWidth) + 'px';
-                    top.style.display = cont.scrollWidth > cont.clientWidth + 1 ? 'block' : 'none';
+
+                /* Envoltorio para las sombras de los bordes */
+                var shadow = document.createElement('div');
+                shadow.className = 'table-shadow-wrap';
+                cont.parentNode.insertBefore(shadow, cont);
+                shadow.appendChild(cont);
+
+                /* Barra propia (después de la tabla). #tsb-wrap reserva el lugar para que nada salte cuando la barra pasa a "fija" */
+                var wrap = document.createElement('div'); wrap.id = 'tsb-wrap';
+                var bar = document.createElement('div'); bar.id = 'tsb';
+                bar.setAttribute('role', 'scrollbar'); bar.setAttribute('aria-orientation', 'horizontal'); bar.setAttribute('aria-label', 'Desplazamiento horizontal de la tabla'); bar.tabIndex = 0;
+                var rail = document.createElement('div'); rail.className = 'tsb-rail';
+                var thumb = document.createElement('div'); thumb.className = 'tsb-thumb';
+                rail.appendChild(thumb); bar.appendChild(rail); wrap.appendChild(bar);
+                shadow.parentNode.insertBefore(wrap, shadow.nextSibling);
+                cont.classList.add('tsb-active');
+
+                function hayExceso() { return cont.scrollWidth > cont.clientWidth + 1; }
+
+                /* Posición y tamaño del "pulgar" + sombras de los bordes */
+                function sincronizar() {
+                    var sw = cont.scrollWidth, cw = cont.clientWidth, exceso = sw - cw;
+                    var tw = rail.clientWidth;
+                    if (exceso > 1 && tw > 0) {
+                        var w = Math.min(tw, Math.max(44, tw * cw / sw));
+                        var x = (tw - w) * (cont.scrollLeft / exceso);
+                        thumb.style.width = w + 'px';
+                        thumb.style.transform = 'translateX(' + x + 'px)';
+                        bar.setAttribute('aria-valuenow', Math.round(100 * cont.scrollLeft / exceso));
+                    }
+                    shadow.classList.toggle('can-left', exceso > 1 && cont.scrollLeft > 1);
+                    shadow.classList.toggle('can-right', exceso > 1 && cont.scrollLeft < exceso - 1);
                 }
-                top.addEventListener('scroll', function () { if (cont.scrollLeft !== top.scrollLeft) cont.scrollLeft = top.scrollLeft; });
-                cont.addEventListener('scroll', function () { if (top.scrollLeft !== cont.scrollLeft) top.scrollLeft = cont.scrollLeft; });
-                window.addEventListener('resize', medir);
-                if (window.ResizeObserver) { var ro = new ResizeObserver(medir); ro.observe(cont); if (table) ro.observe(table); }
-                else setInterval(medir, 1000);
-                medir();
+
+                /* Mostrar/ocultar y decidir si la barra va "fija" en el borde inferior de la pantalla o pegada debajo de la tabla */
+                function posicionar() {
+                    var exceso = hayExceso();
+                    wrap.style.display = exceso ? 'block' : 'none';
+                    if (!exceso) { bar.classList.remove('is-fixed'); bar.style.cssText = ''; sincronizar(); return; }
+                    var r = cont.getBoundingClientRect(), vh = window.innerHeight || document.documentElement.clientHeight;
+                    var modalAbierto = !!document.querySelector('.modal-overlay:not(.hidden)');
+                    var fija = r.bottom > vh && r.top < vh - 60;     /* el final de la tabla está más abajo de lo que se ve */
+                    bar.classList.toggle('is-fixed', fija);
+                    if (fija) { bar.style.left = r.left + 'px'; bar.style.width = r.width + 'px'; bar.style.visibility = modalAbierto ? 'hidden' : 'visible'; }
+                    else { bar.style.left = bar.style.width = ''; bar.style.visibility = ''; }
+                    sincronizar();
+                }
+
+                cont.addEventListener('scroll', sincronizar, { passive: true });
+                window.addEventListener('scroll', posicionar, { passive: true, capture: true });
+                window.addEventListener('resize', posicionar);
+                if (window.ResizeObserver) { var ro = new ResizeObserver(posicionar); ro.observe(cont); if (table) ro.observe(table); }
+                else setInterval(posicionar, 500);
+                if (window.MutationObserver) new MutationObserver(posicionar).observe(document.body, { attributes: true, attributeFilter: ['class'], subtree: true });
+
+                /* Arrastrar el pulgar / hacer clic en la barra para saltar a ese punto */
+                var arrastre = null;
+                function maxScroll() { return cont.scrollWidth - cont.clientWidth; }
+                function irA(clientX) {
+                    var rr = rail.getBoundingClientRect(), w = thumb.offsetWidth, libre = rr.width - w;
+                    if (libre <= 0) return;
+                    var f = Math.min(1, Math.max(0, (clientX - rr.left - w / 2) / libre));
+                    cont.scrollLeft = f * maxScroll();
+                }
+                bar.addEventListener('pointerdown', function (e) {
+                    e.preventDefault();
+                    try { bar.setPointerCapture(e.pointerId); } catch (_) {}
+                    bar.classList.add('is-dragging');
+                    var sobrePulgar = e.target === thumb;
+                    if (sobrePulgar) arrastre = { x0: e.clientX, s0: cont.scrollLeft };
+                    else { arrastre = null; irA(e.clientX); arrastre = { x0: e.clientX, s0: cont.scrollLeft, salto: true }; }
+                });
+                bar.addEventListener('pointermove', function (e) {
+                    if (!bar.classList.contains('is-dragging') || !arrastre) return;
+                    if (arrastre.salto) { irA(e.clientX); return; }
+                    var libre = rail.clientWidth - thumb.offsetWidth;
+                    if (libre > 0) cont.scrollLeft = arrastre.s0 + (e.clientX - arrastre.x0) * (maxScroll() / libre);
+                });
+                function soltar(e) { bar.classList.remove('is-dragging'); arrastre = null; try { bar.releasePointerCapture(e.pointerId); } catch (_) {} }
+                bar.addEventListener('pointerup', soltar); bar.addEventListener('pointercancel', soltar);
+                bar.addEventListener('keydown', function (e) {
+                    var paso = { ArrowLeft: -80, ArrowRight: 80, Home: -1e6, End: 1e6 }[e.key];
+                    if (paso === undefined) return;
+                    e.preventDefault(); cont.scrollLeft += paso;
+                });
+
+                posicionar();
             }
             if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
         })();

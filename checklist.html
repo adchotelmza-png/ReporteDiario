@@ -8,291 +8,330 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Librería para generar Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="config.js"></script>
     <style>
-        /* Estilos generales de la interfaz */
-        .line-through-text {
-            text-decoration: line-through;
-            color: #9ca3af;
-        }
-
-        .check-mark {
-            color: #2563eb;
-            font-size: 1.5rem;
-            line-height: 2rem;
-            font-weight: bold;
-        }
+        .line-through-text { text-decoration: line-through; color: #9ca3af; }
+        .check-mark { color: #2563eb; font-size: 1.5rem; line-height: 2rem; font-weight: bold; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen p-2 sm:p-4 md:p-8 font-sans text-gray-800 overflow-x-hidden">
 
-    <div class="max-w-5xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
-        
+    <!-- Cargando -->
+    <div id="loading-screen" class="max-w-sm mx-auto mt-16 text-center text-gray-500 font-semibold">Cargando check list…</div>
+
+    <!-- Error grave -->
+    <div id="fatal-screen" class="hidden max-w-md mx-auto mt-16 bg-white rounded-xl shadow-lg p-6 text-center">
+        <p class="font-bold text-red-600 mb-2">No se pudo abrir el Check List</p>
+        <p id="fatal-text" class="text-sm text-gray-600 break-words"></p>
+    </div>
+
+    <!-- Ingreso (solo si se abre la página sin haber entrado antes al Registro Diario) -->
+    <div id="login-screen" class="hidden max-w-sm mx-auto mt-16 bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+        <h2 class="text-lg font-bold uppercase tracking-wide text-center mb-4">Check List · Iniciar sesión</h2>
+        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter" for="login-usuario">Usuario</label>
+        <input id="login-usuario" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" class="w-full p-2 mb-3 border-b-2 border-gray-300 bg-transparent focus:border-blue-500 outline-none">
+        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter" for="login-clave">Clave</label>
+        <input id="login-clave" type="password" autocomplete="current-password" class="w-full p-2 mb-3 border-b-2 border-gray-300 bg-transparent focus:border-blue-500 outline-none">
+        <p id="login-error" class="hidden text-sm text-red-600 mb-3"></p>
+        <button id="login-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-bold">Entrar</button>
+    </div>
+
+    <!-- Aplicación -->
+    <div id="app" class="hidden max-w-5xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
+
         <!-- Encabezado -->
         <div class="bg-slate-800 text-white p-4 md:p-6 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3 md:gap-4">
             <div class="flex items-center justify-center md:justify-start gap-3 min-w-0">
                 <i data-lucide="clipboard-list" class="w-7 h-7 md:w-8 md:h-8 shrink-0 text-blue-400"></i>
-                <h1 id="main-title" class="text-lg sm:text-2xl font-bold uppercase tracking-wide sm:tracking-wider break-words">Check List Cajero</h1>
+                <div class="min-w-0">
+                    <h1 id="main-title" class="text-lg sm:text-2xl font-bold uppercase tracking-wide sm:tracking-wider break-words">Check List Recepcionista</h1>
+                    <p id="user-label" class="text-xs text-gray-300 truncate"></p>
+                </div>
             </div>
-            
-            <div class="flex w-full md:w-auto bg-slate-700 rounded-lg p-1" role="group" aria-label="Rol">
-                <button id="tab-cajero" onclick="switchTab('cajero')" class="flex-1 md:flex-none px-3 sm:px-6 py-2.5 md:py-2 text-sm sm:text-base rounded-md transition-all font-semibold bg-blue-600 text-white">
-                    CAJERO
-                </button>
-                <button id="tab-recepcionista" onclick="switchTab('recepcionista')" class="flex-1 md:flex-none px-3 sm:px-6 py-2.5 md:py-2 text-sm sm:text-base rounded-md transition-all font-semibold text-gray-300 hover:text-white">
+
+            <div class="flex w-full md:w-auto bg-slate-700 rounded-lg p-1" role="group" aria-label="Sección">
+                <button id="tab-recepcionista" type="button" class="flex-1 md:flex-none px-3 sm:px-6 py-2.5 md:py-2 text-sm sm:text-base rounded-md transition-all font-semibold bg-blue-600 text-white">
                     RECEPCIONISTA
                 </button>
+                <button id="tab-jefe" type="button" class="hidden flex-1 md:flex-none px-3 sm:px-6 py-2.5 md:py-2 text-sm sm:text-base rounded-md transition-all font-semibold text-gray-300 hover:text-white">
+                    JEFE RECEPCIÓN
+                </button>
             </div>
         </div>
 
-        <!-- Formulario de Datos (Independientes por pestaña) -->
-        <div class="p-4 md:p-6 bg-gray-50 border-b border-gray-200">
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-                <div class="flex flex-col gap-1 min-w-0">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Nombre del Colaborador</label>
-                    <input type="text" id="input-nombre" oninput="updateCurrentData()" placeholder="Nombre completo" class="w-full min-w-0 p-2 border-b-2 border-gray-300 bg-transparent focus:border-blue-500 outline-none font-medium">
-                </div>
-                <div class="flex flex-col gap-1 min-w-0">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Fecha del Turno</label>
-                    <input type="date" id="input-fecha" oninput="updateCurrentData()" class="w-full min-w-0 p-2 border-b-2 border-gray-300 bg-transparent focus:border-blue-500 outline-none font-medium">
-                </div>
-                <div class="flex flex-col gap-1 min-w-0">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Turno</label>
-                    <select id="input-turno" onchange="updateCurrentData()" class="w-full min-w-0 p-2 border-b-2 border-gray-300 bg-transparent focus:border-blue-500 outline-none font-medium cursor-pointer">
-                        <option value="Mañana">Mañana</option>
-                        <option value="Tarde">Tarde</option>
-                        <option value="Noche">Noche</option>
-                    </select>
+        <!-- ===== Sección RECEPCIONISTA: el check list para completar ===== -->
+        <section id="view-recepcionista">
+            <div class="p-4 md:p-6 bg-gray-50 border-b border-gray-200">
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+                    <div class="flex flex-col gap-1 min-w-0">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Nombre del Colaborador</label>
+                        <input type="text" id="input-nombre" placeholder="Nombre completo" class="w-full min-w-0 p-2 border-b-2 border-gray-300 bg-transparent focus:border-blue-500 outline-none font-medium">
+                    </div>
+                    <div class="flex flex-col gap-1 min-w-0">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Fecha del Turno</label>
+                        <input type="date" id="input-fecha" class="w-full min-w-0 p-2 border-b-2 border-gray-300 bg-transparent focus:border-blue-500 outline-none font-medium">
+                    </div>
+                    <div class="flex flex-col gap-1 min-w-0">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Turno</label>
+                        <select id="input-turno" class="w-full min-w-0 p-2 border-b-2 border-gray-300 bg-transparent focus:border-blue-500 outline-none font-medium cursor-pointer">
+                            <option value="Mañana">Mañana</option>
+                            <option value="Tarde">Tarde</option>
+                            <option value="Noche">Noche</option>
+                        </select>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Tabla -->
-        <div class="overflow-x-auto">
-            <table id="checklist-table" class="w-full border-collapse">
-                <thead>
-                    <tr class="bg-gray-100 text-left text-xs uppercase font-bold text-gray-600">
-                        <th class="p-2 sm:p-4 border-b border-gray-300 w-10 sm:w-12 text-center">Nº</th>
-                        <th class="p-2 sm:p-4 border-b border-gray-300">Tareas del Turno</th>
-                        <th class="hidden sm:table-cell p-4 border-b border-gray-300 text-center w-24">Alta</th>
-                        <th class="hidden sm:table-cell p-4 border-b border-gray-300 text-center w-24">Baja</th>
-                        <th class="p-2 sm:p-4 border-b border-gray-300 text-center w-14 sm:w-20">Check</th>
-                    </tr>
-                </thead>
-                <tbody id="checklist-body">
-                    <!-- Filas dinámicas -->
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Footer / Acciones -->
-        <div class="p-4 md:p-6 bg-gray-50 border-t border-gray-200 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 text-center md:text-left">
-            <div class="text-xs font-bold text-gray-400 uppercase">
-                <p id="footer-status">ESTADO: 0 TAREAS COMPLETADAS</p>
-                <p>Cada pestaña mantiene sus propios datos de usuario y tareas.</p>
+            <div class="overflow-x-auto">
+                <table id="checklist-table" class="w-full border-collapse">
+                    <thead>
+                        <tr class="bg-gray-100 text-left text-xs uppercase font-bold text-gray-600">
+                            <th class="p-2 sm:p-4 border-b border-gray-300 w-10 sm:w-12 text-center">Nº</th>
+                            <th class="p-2 sm:p-4 border-b border-gray-300">Tareas del Turno</th>
+                            <th class="p-2 sm:p-4 border-b border-gray-300 text-center w-14 sm:w-20">Check</th>
+                        </tr>
+                    </thead>
+                    <tbody id="checklist-body"></tbody>
+                </table>
+                <p id="empty-msg" class="hidden p-8 text-center text-gray-400 text-sm">Todavía no hay tareas cargadas. El Jefe de Recepción debe armar el check list.</p>
             </div>
-            
-            <button onclick="exportarAExcel()" class="w-full md:w-auto justify-center bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-full font-bold flex items-center gap-2 shadow-lg transition-transform active:scale-95">
-                <i data-lucide="file-spreadsheet" class="w-5 h-5"></i>
-                DESCARGAR EXCEL
-            </button>
-        </div>
+
+            <div class="p-4 md:p-6 bg-gray-50 border-t border-gray-200 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 text-center md:text-left">
+                <div class="text-xs font-bold text-gray-400 uppercase">
+                    <p id="footer-status">ESTADO: 0 TAREAS COMPLETADAS</p>
+                    <p>Las tareas las define el Jefe de Recepción.</p>
+                </div>
+                <button id="btn-excel" type="button" class="w-full md:w-auto justify-center bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-full font-bold flex items-center gap-2 shadow-lg transition-transform active:scale-95">
+                    <i data-lucide="file-spreadsheet" class="w-5 h-5"></i>
+                    DESCARGAR EXCEL
+                </button>
+            </div>
+        </section>
+
+        <!-- ===== Sección JEFE RECEPCIÓN: armar el check list ===== -->
+        <section id="view-jefe" class="hidden">
+            <div class="p-4 md:p-6 bg-gray-50 border-b border-gray-200">
+                <label for="nueva-tarea" class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Nueva tarea</label>
+                <div class="flex flex-col sm:flex-row gap-2 mt-1">
+                    <input type="text" id="nueva-tarea" placeholder="Escribí la tarea y presioná Agregar" maxlength="400" class="flex-1 min-w-0 p-2 border-b-2 border-gray-300 bg-transparent focus:border-blue-500 outline-none font-medium">
+                    <button id="btn-agregar" type="button" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold">Agregar tarea</button>
+                </div>
+                <p id="editor-msg" class="hidden text-sm text-red-600 mt-2"></p>
+            </div>
+
+            <div id="editor-list"></div>
+            <p id="editor-empty" class="hidden p-8 text-center text-gray-400 text-sm">No hay tareas. Escribí la primera arriba y presioná Agregar tarea.</p>
+
+            <div class="p-4 md:p-6 bg-gray-50 border-t border-gray-200 text-xs font-bold text-gray-400 uppercase text-center md:text-left">
+                <p id="editor-count">0 TAREAS</p>
+                <p>Los cambios se ven al instante en la sección Recepcionista de todos los usuarios.</p>
+            </div>
+        </section>
     </div>
 
-    <script>
-        const dataCajero = [
-            { n: 1, tarea: "Control de fondo fijo y firma de rendición de cajero saliente", alta: 10, baja: 10 },
-            { n: 2, tarea: "Repaso de novedades generales y notificación en el registro diario app", alta: 5, baja: 5 },
-            { n: 3, tarea: "Revisión de salidas del día", alta: 15, baja: 10 },
-            { n: 4, tarea: "Revisión de ingresos del día", alta: 15, baja: 15 },
-            { n: 5, tarea: "Repaso de novedades en grupos whatsapp (info, mantenim, Front etc.)", alta: 5, baja: 5 },
-            { n: 6, tarea: "Asignar tareas al recepcionista (extra, colaborador)", alta: 5, baja: 5 },
-            { n: 7, tarea: "Envio de reportes a los sectores correspondientes (gym, piscina, parking) etc", alta: 5, baja: 5 },
-            { n: 8, tarea: "Enviar reporte in house, llegadas, salidas y open balance al grupo whatsapp de Reportes.", alta: 5, baja: 5 },
-            { n: 9, tarea: "Checkear tarifas web del dia, disponibilidad de la semana, y promociones vigentes.", alta: 10, baja: 10 },
-            { n: 10, tarea: "Control de reporte de grupos (verificar datos cargados, horarios y dia de llegada, etc)", alta: 10, baja: 10 },
-            { n: 11, tarea: "Revisión de novedades de auditoria y folios pendientes.", alta: 10, baja: 10 },
-            { n: 12, tarea: "Check out de habitación virtuales", alta: 5, baja: 5 },
-            { n: 13, tarea: "Presentar Informes de frigobares no reconocidos del turno al jefe de recepción y firma", alta: 5, baja: 5 },
-            { n: 14, tarea: "Responder emails", alta: 30, baja: 30 },
-            { n: 15, tarea: "Presentar informe de planilla de créditos y ajustes al jefe de recepción. Informe de default", alta: 10, baja: 10 },
-            { n: 16, tarea: "Dejar suficiente cambio en fondo fijo al turno siguiente", alta: 5, baja: 5 },
-            { n: 17, tarea: "Cerrar folios pendientes generados durante el turno. En caso de no poder hacerlo, anotar y reportar en Front.", alta: 20, baja: 15 },
-            { n: 18, tarea: "Chequeo de llaves onity en conjunto con recepcionista (verificar que se corresponda con los IN en Arion)", alta: 15, baja: 10 },
-            { n: 19, tarea: "Asignar habitaciones de los dias siguientes", alta: 15, baja: 10 },
-            { n: 20, tarea: "Notificar al turno siguiente del estado de las salidas pendientes", alta: 5, baja: 5 },
-            { n: 21, tarea: "INFORMAR AL JEFE DE RECEPCION DEL MOMENTO PARA BRIEFING", alta: 5, baja: 5 },
-            { n: 22, tarea: "Reportar novedades en Front", alta: 10, baja: 5 },
-            { n: 23, tarea: "Cobro de parking pendientes", alta: 15, baja: 10 },
-            { n: 24, tarea: "Cierre de cajero y cierre posnet", alta: "-", baja: "-" }
-        ];
+    <script type="module">
+        import { FirebaseService } from './firebase-service.js';
 
-        const dataRecepcionista = [
-            { n: 1, tarea: "Repaso de novedades generales y notificación en el registro diario app", alta: 5, baja: 5 },
-            { n: 2, tarea: "Chequeo de grupos whatsapp (info, mantenimiento, front, etc)", alta: 5, baja: 5 },
-            { n: 3, tarea: "Chequeo de planilla de despiertes y programación telefónica, Reserva de remises solicitados por los huéspedes", alta: 5, baja: 5 },
-            { n: 4, tarea: "Revisión de FreshMarket y control del orden y limpieza el sector, checkeo rapido estado de baños. Reportar a Áreas públicas de ser necesario.", alta: 10, baja: 10 },
-            { n: 5, tarea: "Chequeo de llegadas del día, pedidos especiales y asignación de habitaciones.", alta: 20, baja: 15 },
-            { n: 6, tarea: "Impresión de mapas, cartas de bienvenida, etc.", alta: 15, baja: 10 },
-            { n: 7, tarea: "Controlar estado de posnet (carga bateria, carga papel, etc)", alta: 5, baja: 5 },
-            { n: 8, tarea: "Controlar carga de telefono y conexión a la red Wifi del hotel", alta: 4, baja: 3 },
-            { n: 9, tarea: "Revisión de novedades de auditoria y folios pendientes.", alta: 10, baja: 10 },
-            { n: 10, tarea: "Preparar los elementos de trabajo y operación: Tarjetas/llaves, porta llaves, colocar hojas en impresora, etc.", alta: 15, baja: 15 },
-            { n: 11, tarea: "Revisión de reservas individuales y de grupos futuras. ", alta: 10, baja: 10 },
-            { n: 12, tarea: "Reporte a housekeeping de las prioridades del día (early check in, LCO, etc)", alta: 10, baja: 5 },
-            { n: 13, tarea: "Reporte a AA&BB de los Early Check IN.", alta: 5, baja: 5 },
-            { n: 14, tarea: "Realizar el check list del area (stock de elementos)", alta: 15, baja: 10 },
-            { n: 15, tarea: "Chequeo de reservas con back up contra sistema: In-Out, tarifas, comentarios, formas de pago. Reporte de anomalías a reservas", alta: 20, baja: 15 },
-            { n: 16, tarea: "Chequeo y cuadre de llaves onity con Arion. entre las 13:00 y 14hs", alta: 15, baja: 10 },
-            { n: 17, tarea: "Chequeo de mensajes, sobres o elementos a entregar a huéspedes. Reportar en grupo Front", alta: 5, baja: 5 },
-            { n: 18, tarea: "Reporte de novedades.", alta: 5, baja: 5 },
-            { n: 19, tarea: "Checkero de whatsapp pendientes", alta: 5, baja: 5 },
-            { n: 20, tarea: "Control de totalidad de datos cargados en perfiles del Arion", alta: 15, baja: 10 }
-        ];
-
-        // Estado independiente para cada rol
-        let activeTab = 'cajero';
-        const states = {
-            cajero: {
-                nombre: '',
-                fecha: new Date().toISOString().split('T')[0],
-                turno: 'Mañana',
-                checks: {}
-            },
-            recepcionista: {
-                nombre: '',
-                fecha: new Date().toISOString().split('T')[0],
-                turno: 'Mañana',
-                checks: {}
-            }
-        };
-
-        // Clases de las pestañas (mismas que en el HTML, para que no cambien de tamaño al alternar)
+        const $ = id => document.getElementById(id);
+        const escapeHTML = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
         const TAB_ON = 'flex-1 md:flex-none px-3 sm:px-6 py-2.5 md:py-2 text-sm sm:text-base rounded-md transition-all font-semibold bg-blue-600 text-white';
         const TAB_OFF = 'flex-1 md:flex-none px-3 sm:px-6 py-2.5 md:py-2 text-sm sm:text-base rounded-md transition-all font-semibold text-gray-300 hover:text-white';
 
-        function switchTab(newTab) {
-            updateCurrentData();
-            activeTab = newTab;
-            
-            const btnCajero = document.getElementById('tab-cajero');
-            const btnRecepcionista = document.getElementById('tab-recepcionista');
-            const mainTitle = document.getElementById('main-title');
+        let items = [];            // tareas del check list (en orden)
+        let checks = {};           // id de tarea -> true (lo tildado en esta pantalla)
+        let activeTab = 'recepcionista';
+        let editingId = null, editingText = '';
+        let started = false;
 
-            if (newTab === 'cajero') {
-                btnCajero.className = TAB_ON;
-                btnRecepcionista.className = TAB_OFF;
-                mainTitle.innerText = 'CHECK LIST CAJERO';
-            } else {
-                btnRecepcionista.className = TAB_ON;
-                btnCajero.className = TAB_OFF;
-                mainTitle.innerText = 'CHECK LIST RECEPCIONISTA';
-            }
+        /* Mismo cálculo de turno que el Registro Diario: Mañana 06:45-15:45 · Tarde 15:45-23:15 · Noche 23:15-06:45 */
+        function turnoActual() {
+            const n = new Date(), min = n.getHours() * 60 + n.getMinutes();
+            return (min >= 405 && min < 945) ? 'Mañana' : (min >= 945 && min < 1395) ? 'Tarde' : 'Noche';
+        }
+        function hoyLocal() {
+            const d = new Date(), p = x => String(x).padStart(2, '0');
+            return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+        }
+        const puedeEditar = () => FirebaseService.puedeEditarChecklist();
 
-            document.getElementById('input-nombre').value = states[newTab].nombre;
-            document.getElementById('input-fecha').value = states[newTab].fecha;
-            document.getElementById('input-turno').value = states[newTab].turno;
+        /* ---------- Pantallas ---------- */
+        function mostrar(id) { ['loading-screen', 'fatal-screen', 'login-screen', 'app'].forEach(x => $(x).classList.toggle('hidden', x !== id)); }
+        function fatal(e) { console.error(e); $('fatal-text').textContent = e?.message || String(e); mostrar('fatal-screen'); }
+        function showLogin() { started = false; mostrar('login-screen'); $('login-usuario').focus(); }
 
-            renderTable();
+        async function doLogin() {
+            const err = $('login-error'), btn = $('login-btn');
+            err.classList.add('hidden'); btn.disabled = true;
+            try { start(await FirebaseService.login($('login-usuario').value, $('login-clave').value)); }
+            catch (e) { err.textContent = e.message || 'No se pudo iniciar sesión.'; err.classList.remove('hidden'); }
+            finally { btn.disabled = false; }
         }
 
-        function updateCurrentData() {
-            states[activeTab].nombre = document.getElementById('input-nombre').value;
-            states[activeTab].fecha = document.getElementById('input-fecha').value;
-            states[activeTab].turno = document.getElementById('input-turno').value;
+        function start(session) {
+            if (started) return;
+            started = true;
+            mostrar('app');
+            $('user-label').textContent = `${session.nombre} · ${session.rolNombre}`;
+            $('tab-jefe').classList.toggle('hidden', !puedeEditar());   // el botón "Jefe Recepción" solo existe para quien puede usarlo
+            if (!$('input-nombre').value) $('input-nombre').value = session.nombre || '';
+            $('input-fecha').value = hoyLocal();
+            $('input-turno').value = turnoActual();
+            switchTab('recepcionista');
+            FirebaseService.listenChecklist(list => { items = list; render(); }, e => fatal(new Error('No se pudo leer el Check List: ' + (e?.message || e))));
+            if (window.lucide) lucide.createIcons();
         }
 
-        function toggleRow(n) {
-            states[activeTab].checks[n] = !states[activeTab].checks[n];
-            renderTable();
+        /* ---------- Pestañas ---------- */
+        function switchTab(tab) {
+            if (tab === 'jefe' && !puedeEditar()) tab = 'recepcionista';
+            activeTab = tab;
+            $('tab-recepcionista').className = tab === 'recepcionista' ? TAB_ON : TAB_OFF;
+            $('tab-jefe').className = (tab === 'jefe' ? TAB_ON : TAB_OFF) + (puedeEditar() ? '' : ' hidden');
+            $('view-recepcionista').classList.toggle('hidden', tab !== 'recepcionista');
+            $('view-jefe').classList.toggle('hidden', tab !== 'jefe');
+            $('main-title').textContent = tab === 'jefe' ? 'Armar Check List' : 'Check List Recepcionista';
+            render();
+        }
+
+        /* ---------- Dibujar ---------- */
+        function render() {
+            const ids = new Set(items.map(i => i.id));
+            Object.keys(checks).forEach(k => { if (!ids.has(k)) delete checks[k]; });
+            if (editingId && !ids.has(editingId)) editingId = null;
+            activeTab === 'jefe' ? renderEditor() : renderTable();
         }
 
         function renderTable() {
-            const body = document.getElementById('checklist-body');
-            const data = activeTab === 'cajero' ? dataCajero : dataRecepcionista;
-            const checks = states[activeTab].checks;
             let completed = 0;
-
-            const html = data.map(item => {
-                const isChecked = checks[item.n] || false;
-                if (isChecked) completed++;
-
+            $('checklist-body').innerHTML = items.map((item, idx) => {
+                const on = !!checks[item.id];
+                if (on) completed++;
                 return `
-                    <tr onclick="toggleRow(${item.n})" class="border-b border-gray-100 cursor-pointer transition-colors ${isChecked ? 'bg-green-50 row-checked' : 'hover:bg-gray-50'}">
-                        <td class="p-2 sm:p-4 text-center font-bold text-gray-300 border-r border-gray-50 align-top sm:align-middle">${item.n}</td>
+                    <tr data-id="${escapeHTML(item.id)}" class="border-b border-gray-100 cursor-pointer transition-colors ${on ? 'bg-green-50 row-checked' : 'hover:bg-gray-50'}">
+                        <td class="p-2 sm:p-4 text-center font-bold text-gray-300 border-r border-gray-50 align-top sm:align-middle">${idx + 1}</td>
                         <td class="p-2 sm:p-4 text-sm md:text-base break-words">
-                            <span class="${isChecked ? 'line-through-text font-medium' : 'text-gray-700'}">${item.tarea}</span>
-                            <span class="sm:hidden block mt-1 text-xs font-bold text-gray-400">Alta: ${item.alta} · Baja: ${item.baja}</span>
+                            <span class="${on ? 'line-through-text font-medium' : 'text-gray-700'}">${escapeHTML(item.tarea)}</span>
                         </td>
-                        <td class="hidden sm:table-cell p-4 text-center text-xs font-bold text-gray-400">${item.alta}</td>
-                        <td class="hidden sm:table-cell p-4 text-center text-xs font-bold text-gray-400">${item.baja}</td>
                         <td class="p-2 sm:p-4 text-center align-top sm:align-middle">
-                            <div class="flex justify-center">
-                                ${isChecked ? 
-                                    '<span class="check-mark">✓</span>' : 
-                                    '<div class="w-6 h-6 border-2 border-gray-200 rounded"></div>'
-                                }
-                            </div>
+                            <div class="flex justify-center">${on ? '<span class="check-mark">✓</span>' : '<div class="w-6 h-6 border-2 border-gray-200 rounded"></div>'}</div>
                         </td>
-                    </tr>
-                `;
+                    </tr>`;
             }).join('');
-
-            body.innerHTML = html;
-            document.getElementById('footer-status').innerText = `ESTADO: ${completed} TAREAS COMPLETADAS DE ${data.length}`;
+            $('empty-msg').classList.toggle('hidden', items.length > 0);
+            $('checklist-table').classList.toggle('hidden', items.length === 0);
+            $('footer-status').textContent = `ESTADO: ${completed} TAREAS COMPLETADAS DE ${items.length}`;
         }
 
+        const BTN = 'px-2.5 py-1.5 rounded-md text-sm font-semibold border';
+        function renderEditor() {
+            $('editor-list').innerHTML = items.map((item, idx) => {
+                const editando = item.id === editingId;
+                const cuerpo = editando
+                    ? `<textarea data-edit-input rows="2" maxlength="400" class="w-full p-2 border-2 border-blue-300 rounded-md outline-none focus:border-blue-500 text-sm md:text-base">${escapeHTML(editingText)}</textarea>`
+                    : `<p class="text-sm md:text-base text-gray-700 break-words">${escapeHTML(item.tarea)}</p>`;
+                const acciones = editando
+                    ? `<button data-act="guardar" class="${BTN} bg-blue-600 text-white border-blue-600">Guardar</button>
+                       <button data-act="cancelar" class="${BTN} bg-white text-gray-600 border-gray-300">Cancelar</button>`
+                    : `<button data-act="subir" title="Subir" ${idx === 0 ? 'disabled' : ''} class="${BTN} bg-white text-gray-600 border-gray-300 ${idx === 0 ? 'opacity-30' : ''}">▲</button>
+                       <button data-act="bajar" title="Bajar" ${idx === items.length - 1 ? 'disabled' : ''} class="${BTN} bg-white text-gray-600 border-gray-300 ${idx === items.length - 1 ? 'opacity-30' : ''}">▼</button>
+                       <button data-act="editar" class="${BTN} bg-white text-blue-700 border-blue-300">Modificar</button>
+                       <button data-act="borrar" class="${BTN} bg-white text-red-600 border-red-300">Eliminar</button>`;
+                return `
+                    <div data-id="${escapeHTML(item.id)}" class="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-3 p-3 sm:p-4 border-b border-gray-100">
+                        <div class="flex gap-3 flex-1 min-w-0">
+                            <span class="w-8 shrink-0 text-center font-bold text-gray-300 pt-1">${idx + 1}</span>
+                            <div class="flex-1 min-w-0">${cuerpo}</div>
+                        </div>
+                        <div class="flex flex-wrap gap-1.5 sm:justify-end">${acciones}</div>
+                    </div>`;
+            }).join('');
+            $('editor-empty').classList.toggle('hidden', items.length > 0);
+            $('editor-count').textContent = `${items.length} ${items.length === 1 ? 'TAREA' : 'TAREAS'}`;
+            const ta = document.querySelector('[data-edit-input]');
+            if (ta && document.activeElement !== ta && !ta.dataset.focused) { ta.dataset.focused = '1'; ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+        }
+
+        function msg(texto) {
+            const el = $('editor-msg');
+            el.textContent = texto || ''; el.classList.toggle('hidden', !texto);
+        }
+
+        /* ---------- Acciones del Jefe de Recepción ---------- */
+        async function agregar() {
+            const input = $('nueva-tarea');
+            msg('');
+            try { await FirebaseService.addChecklistItem(input.value); input.value = ''; input.focus(); }
+            catch (e) { msg(e.message); }
+        }
+
+        async function accionEditor(act, id) {
+            msg('');
+            const idx = items.findIndex(i => i.id === id), item = items[idx];
+            if (!item) return;
+            try {
+                if (act === 'editar') { editingId = id; editingText = item.tarea; renderEditor(); }
+                else if (act === 'cancelar') { editingId = null; renderEditor(); }
+                else if (act === 'guardar') {
+                    await FirebaseService.updateChecklistItem(id, editingText);
+                    editingId = null; renderEditor();
+                }
+                else if (act === 'borrar') {
+                    if (!confirm(`¿Eliminar esta tarea del Check List?\n\n"${item.tarea}"`)) return;
+                    await FirebaseService.deleteChecklistItem(id);
+                }
+                else if (act === 'subir' && idx > 0) await FirebaseService.swapChecklistOrden(item, items[idx - 1]);
+                else if (act === 'bajar' && idx < items.length - 1) await FirebaseService.swapChecklistOrden(item, items[idx + 1]);
+            } catch (e) { msg(e.message || 'No se pudo completar la acción.'); }
+        }
+
+        /* ---------- Excel ---------- */
         function exportarAExcel() {
-            updateCurrentData();
-            const state = states[activeTab];
-            const data = activeTab === 'cajero' ? dataCajero : dataRecepcionista;
-            const title = activeTab === 'cajero' ? "CHECK LIST CAJERO" : "CHECK LIST RECEPCIONISTA";
-
-            // Preparar datos para SheetJS
-            const excelRows = [
-                [title],
-                ["COLABORADOR:", state.nombre || "N/A"],
-                ["FECHA:", state.fecha],
-                ["TURNO:", state.turno],
+            if (typeof XLSX === 'undefined') return alert('La librería para generar el Excel no se cargó.');
+            const nombre = $('input-nombre').value, fecha = $('input-fecha').value, turno = $('input-turno').value;
+            const rows = [
+                ['CHECK LIST RECEPCIONISTA'],
+                ['COLABORADOR:', nombre || 'N/A'],
+                ['FECHA:', fecha],
+                ['TURNO:', turno],
                 [],
-                ["Nº", "TAREA", "TEMP. ALTA", "TEMP. BAJA", "COMPLETADO"]
+                ['Nº', 'TAREA', 'COMPLETADO']
             ];
-
-            data.forEach(item => {
-                excelRows.push([
-                    item.n,
-                    item.tarea,
-                    item.alta,
-                    item.baja,
-                    state.checks[item.n] ? "SI" : "NO"
-                ]);
-            });
-
-            // Crear libro de trabajo
-            const ws = XLSX.utils.aoa_to_sheet(excelRows);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "CheckList");
-
-            // Ajustar anchos de columna
-            ws['!cols'] = [
-                { wch: 5 },  // Nº
-                { wch: 80 }, // Tarea
-                { wch: 12 }, // Alta
-                { wch: 12 }, // Baja
-                { wch: 12 }  // Si/No
-            ];
-
-            // Descargar archivo
-            const fileName = `CheckList_${activeTab}_${state.nombre.replace(/\s+/g, '_')}_${state.fecha}.xlsx`;
-            XLSX.writeFile(wb, fileName);
+            items.forEach((item, idx) => rows.push([idx + 1, item.tarea, checks[item.id] ? 'SI' : 'NO']));
+            const ws = XLSX.utils.aoa_to_sheet(rows), wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'CheckList');
+            ws['!cols'] = [{ wch: 5 }, { wch: 80 }, { wch: 12 }];
+            XLSX.writeFile(wb, `CheckList_Recepcionista_${(nombre || 'sin_nombre').replace(/\s+/g, '_')}_${fecha}.xlsx`);
         }
 
-        window.onload = () => {
-            lucide.createIcons();
-            document.getElementById('input-nombre').value = states.cajero.nombre;
-            document.getElementById('input-fecha').value = states.cajero.fecha;
-            document.getElementById('input-turno').value = states.cajero.turno;
+        /* ---------- Eventos ---------- */
+        $('tab-recepcionista').addEventListener('click', () => switchTab('recepcionista'));
+        $('tab-jefe').addEventListener('click', () => switchTab('jefe'));
+        $('checklist-body').addEventListener('click', e => {
+            const tr = e.target.closest('tr[data-id]');
+            if (!tr) return;
+            checks[tr.dataset.id] = !checks[tr.dataset.id];
             renderTable();
-        };
+        });
+        $('btn-excel').addEventListener('click', exportarAExcel);
+        $('btn-agregar').addEventListener('click', agregar);
+        $('nueva-tarea').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); agregar(); } });
+        $('editor-list').addEventListener('click', e => {
+            const b = e.target.closest('button[data-act]');
+            const fila = e.target.closest('[data-id]');
+            if (b && fila && !b.disabled) accionEditor(b.dataset.act, fila.dataset.id);
+        });
+        $('editor-list').addEventListener('input', e => { if (e.target.matches('[data-edit-input]')) editingText = e.target.value; });
+        $('editor-list').addEventListener('keydown', e => {
+            if (!e.target.matches('[data-edit-input]')) return;
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); accionEditor('guardar', editingId); }
+            if (e.key === 'Escape') accionEditor('cancelar', editingId);
+        });
+        $('login-btn').addEventListener('click', doLogin);
+        ['login-usuario', 'login-clave'].forEach(id => $(id).addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); doLogin(); } }));
+
+        /* ---------- Arranque ---------- */
+        FirebaseService.init(session => start(session), () => showLogin(), fatal).catch(fatal);
     </script>
 </body>
 </html>

@@ -19,6 +19,7 @@ const COLLECTION_NAME = 'hotel_log';
 const ALARMS_COLLECTION_NAME = 'hotel_alarms';
 const USERS_COLLECTION_NAME = 'hotel_users';   // un documento por usuario (id = usuario en minúsculas)
 const ROLES_COLLECTION_NAME = 'hotel_roles';   // un documento por categoría
+const CHECKLIST_COLLECTION_NAME = 'hotel_checklist';   // una tarea del Check List por documento (campo "orden" define la posición)
 const SESSION_KEY = 'registro-diario:sesion';
 
 /* Permisos que se pueden activar/desactivar por categoría (el Admin los tiene todos siempre) */
@@ -32,7 +33,8 @@ export const PERMISOS = [
     { k: 'whatsapp',   label: 'Generar reporte (botón Reporte)' },
     { k: 'excel',      label: 'Exportar a Excel' },
     { k: 'pdf',        label: 'Exportar PDF / Imprimir' },
-    { k: 'borrarTodo', label: 'Borrar TODOS los registros' }
+    { k: 'borrarTodo', label: 'Borrar TODOS los registros' },
+    { k: 'checklist',  label: 'Armar / editar el Check List' }
 ];
 /* Formato de clave: 1 mayúscula + minúsculas + 4 números (ej.: Lionel1234) */
 export const CLAVE_REGEX = /^[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+\d{4}$/;
@@ -43,6 +45,7 @@ const getPath = (colName) => isCanvasEnvironment ? `artifacts/${appId}/public/da
 
 let unsubNovedades = null;
 let unsubAlarms = null;
+let unsubChecklist = null;
 
 export const FirebaseService = {
     user: null,      // usuario técnico de Firebase (anónimo, solo da acceso a Firestore)
@@ -190,8 +193,44 @@ export const FirebaseService = {
     },
 
     stopListeners() {
-        unsubNovedades?.(); unsubAlarms?.();
-        unsubNovedades = unsubAlarms = null;
+        unsubNovedades?.(); unsubAlarms?.(); unsubChecklist?.();
+        unsubNovedades = unsubAlarms = unsubChecklist = null;
+    },
+
+    /* ---------- Check List (lo arma el Jefe de Recepción; lo ven todos) ---------- */
+    /* Pueden armarlo: Admin, Gerencia, Jefe Recepción, o cualquier categoría con el permiso "checklist" */
+    puedeEditarChecklist() {
+        const s = this.session;
+        return !!s && (s.esAdmin || ['gerencia', 'jefe-recepcion'].includes(s.rolId) || s.permisos?.checklist === true);
+    },
+    listenChecklist(callback, onError) {
+        unsubChecklist?.();
+        const q = query(collection(db, getPath(CHECKLIST_COLLECTION_NAME)), orderBy('orden', 'asc'));
+        unsubChecklist = onSnapshot(q, snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))), onError);
+    },
+    async addChecklistItem(tarea) {
+        if (!this.puedeEditarChecklist()) throw new Error('No tenés permiso para editar el Check List.');
+        const texto = String(tarea || '').trim();
+        if (!texto) throw new Error('Escribí la tarea.');
+        return await addDoc(collection(db, getPath(CHECKLIST_COLLECTION_NAME)), { tarea: texto, orden: Date.now(), creadoPor: this.email, creadoEn: serverTimestamp() });
+    },
+    async updateChecklistItem(id, tarea) {
+        if (!this.puedeEditarChecklist()) throw new Error('No tenés permiso para editar el Check List.');
+        const texto = String(tarea || '').trim();
+        if (!texto) throw new Error('La tarea no puede quedar vacía.');
+        return await updateDoc(doc(db, getPath(CHECKLIST_COLLECTION_NAME), id), { tarea: texto, editadoPor: this.email, editadoEn: serverTimestamp() });
+    },
+    async deleteChecklistItem(id) {
+        if (!this.puedeEditarChecklist()) throw new Error('No tenés permiso para editar el Check List.');
+        return await deleteDoc(doc(db, getPath(CHECKLIST_COLLECTION_NAME), id));
+    },
+    /* Intercambia la posición de dos tareas (para subir / bajar) */
+    async swapChecklistOrden(a, b) {
+        if (!this.puedeEditarChecklist()) throw new Error('No tenés permiso para editar el Check List.');
+        const batch = writeBatch(db);
+        batch.update(doc(db, getPath(CHECKLIST_COLLECTION_NAME), a.id), { orden: b.orden });
+        batch.update(doc(db, getPath(CHECKLIST_COLLECTION_NAME), b.id), { orden: a.orden });
+        await batch.commit();
     },
 
     async inicializarCategoriasBase() {

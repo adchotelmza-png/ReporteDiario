@@ -83,6 +83,21 @@
         /* Barra de desplazamiento horizontal superior de la tabla (sincronizada con la de abajo) */
         #table-scroll-top { overflow-x: auto; overflow-y: hidden; height: 16px; margin-bottom: 4px; display: none; }
         #table-scroll-top > div { height: 1px; }
+        /* Columnas de la tabla ajustables: líneas verticales grises claras y manijas para arrastrar */
+        .novedades-table th, .novedades-table td { border-right: 1px solid rgba(128,128,128,.28); }
+        .novedades-table th:last-child, .novedades-table td:last-child { border-right: 0; }
+        .novedades-table.cols-fixed { table-layout: fixed; }
+        .novedades-table.cols-fixed th, .novedades-table.cols-fixed td { box-sizing: border-box; }
+        /* El texto se adapta a la celda y la fila crece según el contenido (nada queda cortado ni fuera de su celda) */
+        .scrollable-table-container .novedades-table th { white-space: normal !important; overflow-wrap: break-word !important; word-break: normal !important; }
+        .scrollable-table-container .novedades-table td { white-space: normal !important; overflow-wrap: anywhere !important; word-break: break-word !important; overflow: visible !important; text-overflow: clip !important; max-width: none !important; max-height: none !important; height: auto !important; vertical-align: top; }
+        .scrollable-table-container .novedades-table td.cell-novedad { display: table-cell !important; white-space: pre-line !important; -webkit-line-clamp: unset !important; line-clamp: unset !important; -webkit-box-orient: horizontal !important; }
+        .scrollable-table-container .novedades-table tr { height: auto !important; max-height: none !important; }
+        .scrollable-table-container .novedades-table td select, .scrollable-table-container .novedades-table td button { max-width: 100%; box-sizing: border-box; }
+        .scrollable-table-container .novedades-table td .badge, .scrollable-table-container .novedades-table td .badge-age { white-space: normal; max-width: 100%; }
+        .col-resizer { position: absolute; top: 0; right: -5px; width: 11px; height: 100%; cursor: col-resize; user-select: none; -webkit-user-select: none; touch-action: none; z-index: 3; }
+        .col-resizer::after { content: ''; position: absolute; top: 15%; bottom: 15%; left: 5px; width: 1px; background: transparent; }
+        .col-resizer:hover::after, .col-resizer.is-dragging::after { background: #0891b2; width: 3px; left: 4px; border-radius: 2px; }
         #user-info.clickable { cursor: pointer; }
         #user-info.clickable:hover { filter: brightness(1.15); }
         #user-menu { position: absolute; top: 40px; left: 0; z-index: 10004; padding: 0.4rem; min-width: 11rem; box-shadow: 0 6px 20px rgba(0,0,0,.35); }
@@ -380,7 +395,7 @@
 
                 <div class="form-group">
                     <label for="nReserva" class="form-label">Nº de Reserva</label>
-                    <input type="text" id="nReserva" name="nReserva" class="form-input" placeholder="Ej: 25016-171152">
+                    <input type="text" id="nReserva" name="nReserva" class="form-input" placeholder="Ej: 123456 (hasta 6 números)">
                 </div>
 
                 <div class="form-group">
@@ -684,6 +699,120 @@
                 if (window.ResizeObserver) { var ro = new ResizeObserver(medir); ro.observe(cont); if (table) ro.observe(table); }
                 else setInterval(medir, 1000);
                 medir();
+            }
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+        })();
+    </script>
+
+    <script>
+        /* Columnas de la tabla de novedades: ancho inicial automático, ajustables arrastrando la línea del encabezado,
+           con un MÍNIMO y un MÁXIMO por columna. Doble clic sobre una línea = volver al ancho inicial.
+           Los anchos elegidos se recuerdan en este navegador. */
+        (function () {
+            var KEY = 'registro-diario:anchos-columnas-v2';
+            /* Por columna (en el orden del encabezado): [mínimo, máximo, ancho inicial]. null = la columna de casillas (fija). */
+            var COL = [
+                null,            /* 0  casilla de selección (40 px fija) */
+                [75, 100, 80],   /* 1  Turno */
+                [95, 120, 100],  /* 2  Fecha */
+                [85, 130, 90],   /* 3  Prioridad */
+                [115, 190, 120], /* 4  Área/Elemento */
+                [75, 110, 80],   /* 5  Nº Reserva */
+                [60, 90, 62],    /* 6  Habit. */
+                [260, 650, 340], /* 7  Novedad (usa el espacio libre de la pantalla, dentro de sus límites) */
+                [120, 300, 140], /* 8  Notificado a */
+                [125, 150, 130], /* 9  Estado */
+                [60, 90, 65],    /* 10 Respuestas */
+                [56, 56, 56],    /* 11 Editar (fija) */
+                [56, 56, 56],    /* 12 Borrar (fija) */
+                [110, 190, 110]  /* 13 Usuario */
+            ];
+            var NOVEDAD = 7, CASILLA = 40, L = COL;
+            function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
+            function init() {
+                var table = document.querySelector('.novedades-table');
+                if (!table) return;
+                var cont = table.closest('.scrollable-table-container') || table.parentNode;
+                var ths = Array.prototype.slice.call(table.querySelectorAll('thead th'));
+                if (ths.length !== COL.length) return;   /* si cambia la cantidad de columnas, no se toca nada */
+                /* Los límites asumen ~24 px de relleno por celda; si el diseño real usa más, se suma la diferencia para que el texto no se parta */
+                var cs = getComputedStyle(ths[1]);
+                var extra = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0) + (parseFloat(cs.borderLeftWidth) || 0) + (parseFloat(cs.borderRightWidth) || 0);
+                var delta = Math.max(0, Math.round(extra - 24));
+                L = COL.map(function (c) { return (c && c[0] !== c[1]) ? [c[0] + delta, c[1] + delta, c[2] + delta] : c; });
+                var anchos = [], personalizado = false;
+
+                function visible(i) { return ths[i].offsetWidth > 0; }
+                function aplicar() {
+                    var total = 0;
+                    ths.forEach(function (th, i) {
+                        th.style.width = anchos[i] + 'px';
+                        if (visible(i)) total += anchos[i];
+                    });
+                    table.classList.add('cols-fixed');
+                    table.style.width = Math.ceil(total) + 'px';
+                    table.style.minWidth = '0'; table.style.maxWidth = 'none';
+                }
+                function porDefecto() {
+                    anchos = L.map(function (c) { return c ? c[2] : CASILLA; });
+                    /* Novedad ocupa el espacio que sobra en pantalla (entre su mínimo y su máximo) */
+                    var libre = cont.clientWidth;
+                    if (libre > 0) {
+                        var otros = 0;
+                        ths.forEach(function (th, i) { if (i !== NOVEDAD && visible(i)) otros += anchos[i]; });
+                        anchos[NOVEDAD] = clamp(libre - otros - 2, L[NOVEDAD][0], L[NOVEDAD][1]);
+                    }
+                    aplicar();
+                }
+                function guardar() { try { localStorage.setItem(KEY, JSON.stringify(anchos)); } catch (e) {} }
+                function restablecer() {
+                    personalizado = false;
+                    try { localStorage.removeItem(KEY); } catch (e) {}
+                    porDefecto();
+                }
+
+                /* Manijas para arrastrar (no en la casilla ni en las columnas fijas) */
+                ths.forEach(function (th, i) {
+                    var c = L[i];
+                    if (!c || c[0] === c[1]) return;
+                    if (getComputedStyle(th).position === 'static') th.style.position = 'relative';
+                    var g = document.createElement('span');
+                    g.className = 'col-resizer';
+                    g.title = 'Arrastrá para ajustar el ancho (mín. ' + c[0] + ' px · máx. ' + c[1] + ' px) · doble clic para restablecer todas';
+                    th.appendChild(g);
+                    g.addEventListener('dblclick', function (e) { e.preventDefault(); restablecer(); });
+                    g.addEventListener('click', function (e) { e.stopPropagation(); });
+                    g.addEventListener('pointerdown', function (e) {
+                        e.preventDefault(); e.stopPropagation();
+                        var x0 = e.clientX, w0 = anchos[i];
+                        personalizado = true;
+                        g.classList.add('is-dragging'); document.body.style.cursor = 'col-resize';
+                        try { g.setPointerCapture(e.pointerId); } catch (err) {}
+                        function mover(ev) { anchos[i] = clamp(w0 + ev.clientX - x0, c[0], c[1]); aplicar(); }
+                        function soltar() {
+                            g.classList.remove('is-dragging'); document.body.style.cursor = '';
+                            g.removeEventListener('pointermove', mover); g.removeEventListener('pointerup', soltar); g.removeEventListener('pointercancel', soltar);
+                            guardar();
+                        }
+                        g.addEventListener('pointermove', mover); g.addEventListener('pointerup', soltar); g.addEventListener('pointercancel', soltar);
+                    });
+                });
+
+                /* Anchos guardados (se corrigen si quedaron fuera de los límites) o ancho inicial */
+                try {
+                    var g0 = JSON.parse(localStorage.getItem(KEY) || 'null');
+                    if (Array.isArray(g0) && g0.length === COL.length) {
+                        anchos = L.map(function (c, i) { return c ? clamp(+g0[i] || c[2], c[0], c[1]) : CASILLA; });
+                        personalizado = true; aplicar();
+                    }
+                } catch (e) {}
+                if (!personalizado) porDefecto();
+
+                /* Recalcular cuando cambia el tamaño de la pantalla o las columnas visibles (permisos) */
+                function refrescar() { if (personalizado) aplicar(); else porDefecto(); }
+                if (window.ResizeObserver) new ResizeObserver(function () { if (!personalizado) porDefecto(); }).observe(cont);
+                window.addEventListener('resize', function () { if (!personalizado) porDefecto(); });
+                new MutationObserver(refrescar).observe(document.body, { attributes: true, attributeFilter: ['class'] });
             }
             if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
         })();

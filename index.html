@@ -36,11 +36,58 @@
         
         /* Header y Alineaciones */
         .main-header { position: relative; }
-        #company-logo { width: 48px; height: auto; flex: none; display: inline-block; vertical-align: middle; border-radius: 6px; }
         .header-actions-container { display: flex; align-items: center; gap: 0.5rem; position: relative; z-index: 10; }
         .user-info-badge, #open-reminder-modal-btn { display: inline-flex !important; align-items: center !important; justify-content: center !important; height: 34px !important; padding: 0 0.8rem !important; font-size: 0.85rem !important; border-radius: 6px !important; box-sizing: border-box !important; margin: 0 !important; line-height: 1 !important; }
         #open-reminder-modal-btn { gap: 6px; }
         #open-reminder-modal-btn svg { margin: 0 !important; display: block; }
+
+        /* --- Menú Sándwich Elegante --- */
+        .sandwich-menu-container { position: relative; display: inline-block; }
+        .sandwich-btn {
+            background: var(--color-superficie-translucida, rgba(128, 128, 128, 0.1));
+            border: 1px solid var(--color-borde-translucido, rgba(128, 128, 128, 0.2));
+            color: var(--color-texto-principal, inherit);
+            width: 42.78px; height: 42.78px;
+            border-radius: 0.5rem;
+            display: inline-flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.2s ease;
+        }
+        .sandwich-btn:hover { background-color: var(--color-superficie-hover, rgba(128, 128, 128, 0.2)); }
+        .sandwich-dropdown {
+            position: absolute; top: calc(100% + 8px); left: 0;
+            background: var(--pop-bg, #1e1e32); color: var(--pop-fg, #f3f4f6);
+            border: 1px solid var(--pop-border, rgba(255, 255, 255, 0.15));
+            border-radius: 12px; min-width: 230px;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.35);
+            z-index: 10005; padding: 0.5rem;
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            animation: dropdownFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        [data-theme="light"] .sandwich-dropdown {
+            --pop-bg: #ffffff; --pop-fg: #1f2937; --pop-border: rgba(0,0,0,0.12);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        @keyframes dropdownFadeIn {
+            from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .sandwich-dropdown a {
+            display: flex; align-items: center; gap: 0.75rem;
+            padding: 0.7rem 0.9rem; color: inherit; text-decoration: none;
+            font-size: 0.9rem; font-weight: 500; border-radius: 8px;
+            transition: background 0.15s ease, transform 0.15s ease;
+        }
+        .sandwich-dropdown a:hover {
+            background: rgba(8, 145, 178, 0.12);
+            color: var(--color-acento-celeste, #0891b2);
+            transform: translateX(3px);
+        }
+        .sandwich-dropdown a svg {
+            width: 18px; height: 18px; flex: none; opacity: 0.8;
+            transition: opacity 0.15s;
+        }
+        .sandwich-dropdown a:hover svg { opacity: 1; }
+        .sandwich-divider { height: 1px; background: var(--pop-border, rgba(128,128,128,0.2)); margin: 0.35rem 0.5rem; }
 
         /* Comentarios y Paginación */
         .comment-bubble { background-color: rgba(128, 128, 128, 0.1); padding: 0.75rem; border-radius: 0.5rem; margin-bottom: 0.75rem; border: 1px solid rgba(128, 128, 128, 0.2); word-wrap: break-word; }
@@ -65,7 +112,7 @@
         .btn-massive-add:active { transform: translateY(0); }
         .btn-massive-add svg { width: 3rem; height: 3rem; stroke-width: 2.5; }
 
-        /* --- Permisos por categoría: la clase perm-no-X se pone en <body> al iniciar sesión --- */
+        /* --- Permisos por categoría --- */
         .perm-no-crear .top-dashboard-grid > div:has(#open-add-modal-btn) { display: none; }
         .perm-no-editar #mobile-btn-editar { display: none; }
         .perm-no-editar.perm-no-borrar .cell-actions, .perm-no-editar.perm-no-borrar .novedades-table th:nth-child(12) { display: none; }
@@ -80,10 +127,7 @@
         /* --- Módulo de administración --- */
         #open-admin-btn { display: none; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 0.8rem; font-size: 0.85rem; margin: 0; }
         .is-admin #open-admin-btn { display: inline-flex; }
-        /* ===== Desplazamiento horizontal de la tabla de novedades =====
-           · Barra fina propia, siempre a la vista pegada al borde inferior de la pantalla (reemplaza a la de arriba y a la nativa)
-           · Se engrosa al pasar el mouse · colores según el tema (oscuro por defecto / claro)
-           · Sombras en los bordes que avisan que hay más columnas ocultas */
+        
         :root { --tsb-rail: rgba(255,255,255,.10); --tsb-thumb: rgba(148,163,184,.55); --tsb-thumb-hover: #0891b2; --tsb-strip: rgba(30,32,36,.78); --tsb-shadow: rgba(0,0,0,.65); --pop-bg: #2b2d33; --pop-fg: #f3f4f6; --pop-border: rgba(255,255,255,.14); }
         [data-theme="light"] { --tsb-rail: rgba(0,0,0,.08); --tsb-thumb: rgba(71,85,105,.45); --tsb-thumb-hover: #0891b2; --tsb-strip: rgba(255,255,255,.85); --tsb-shadow: rgba(0,0,0,.22); --pop-bg: #ffffff; --pop-fg: #1f2937; --pop-border: rgba(0,0,0,.14); }
         .table-shadow-wrap { position: relative; }
@@ -101,7 +145,6 @@
         #tsb .tsb-thumb { position: absolute; left: 0; top: 0; height: 100%; border-radius: 999px; background: var(--tsb-thumb); transition: background .15s ease; will-change: transform; }
         #tsb:hover .tsb-thumb, #tsb.is-dragging .tsb-thumb, #tsb:focus-visible .tsb-thumb { background: var(--tsb-thumb-hover); }
 
-        /* ===== Estado como botón de color (un clic alterna Pendiente / Resuelto) ===== */
         .estado-pill { display: inline-flex; align-items: center; gap: 6px; padding: .28rem .7rem; border-radius: 999px; font: inherit; font-size: .82rem; font-weight: 700; line-height: 1.2; border: 1px solid transparent; cursor: pointer; white-space: nowrap; transition: filter .15s, transform .1s, box-shadow .15s; }
         .estado-pill .estado-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: none; }
         .estado-pill.is-pendiente { background: rgba(245,158,11,.18); color: #b45309; border-color: rgba(245,158,11,.55); }
@@ -113,7 +156,6 @@
         .estado-pill:focus-visible { outline: 2px solid #0891b2; outline-offset: 2px; }
         .estado-pill:disabled { cursor: default; }
 
-        /* ===== Botón ⋮ y menú de acciones de cada fila (Editar / Borrar) ===== */
         .row-menu-btn { width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; padding: 0; }
         .row-menu-btn svg { width: 18px; height: 18px; }
         .row-menu-btn[aria-expanded="true"] { background: rgba(128,128,128,.25); }
@@ -125,7 +167,6 @@
         #row-menu svg { width: 16px; height: 16px; flex: none; }
         .perm-no-editar #row-menu .mi-edit, .perm-no-borrar #row-menu .mi-delete { display: none; }
 
-        /* ===== Avisos que no interrumpen (se van solos; clic para cerrar) ===== */
         #toast-box { position: fixed; right: 1rem; bottom: 3.2rem; z-index: 10010; display: flex; flex-direction: column; gap: .5rem; align-items: flex-end; pointer-events: none; max-width: calc(100vw - 2rem); }
         .toast { pointer-events: auto; cursor: pointer; max-width: 26rem; padding: .65rem 1rem .65rem .85rem; border-radius: 10px; background: var(--pop-bg); color: var(--pop-fg); border: 1px solid var(--pop-border); border-left: 4px solid #0891b2; box-shadow: 0 8px 24px rgba(0,0,0,.3); font-size: .9rem; font-weight: 600; animation: toast-in .22s ease-out; }
         .toast-success { border-left-color: #10b981; }
@@ -134,14 +175,11 @@
         @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
         @media (prefers-reduced-motion: reduce) { .toast { animation: none; } .toast-out { transition: none; } }
 
-        /* ===== Texto buscado resaltado ===== */
         mark.hl { background: #fde047; color: #111827; border-radius: 3px; padding: 0 1px; }
-        /* Columnas de la tabla ajustables: líneas verticales grises claras y manijas para arrastrar */
         .novedades-table th, .novedades-table td { border-right: 1px solid rgba(128,128,128,.28); }
         .novedades-table th:last-child, .novedades-table td:last-child { border-right: 0; }
         .novedades-table.cols-fixed { table-layout: fixed; }
         .novedades-table.cols-fixed th, .novedades-table.cols-fixed td { box-sizing: border-box; }
-        /* El texto se adapta a la celda y la fila crece según el contenido (nada queda cortado ni fuera de su celda) */
         .scrollable-table-container .novedades-table th { white-space: normal !important; overflow-wrap: break-word !important; word-break: normal !important; }
         .scrollable-table-container .novedades-table td { white-space: normal !important; overflow-wrap: anywhere !important; word-break: break-word !important; overflow: visible !important; text-overflow: clip !important; max-width: none !important; max-height: none !important; height: auto !important; vertical-align: top; }
         .scrollable-table-container .novedades-table td.cell-novedad { display: table-cell !important; white-space: pre-line !important; -webkit-line-clamp: unset !important; line-clamp: unset !important; -webkit-box-orient: horizontal !important; }
@@ -165,7 +203,6 @@
         #change-pass-modal .pass-hint { font-size: 0.8rem; opacity: .8; margin: 0 0 0.6rem 0; }
         #open-admin-btn[hidden] { display: none !important; }
 
-        /* --- Botón Cerrar sesión: rojo con letras blancas en tema claro y oscuro (solo color, mismo tamaño) --- */
         #logout-button, #logout-button:visited { background: #dc2626 !important; border-color: #dc2626 !important; color: #fff !important; }
         #logout-button:hover, #logout-button:focus-visible { background: #b91c1c !important; border-color: #b91c1c !important; color: #fff !important; }
         #logout-button svg { color: #fff !important; }
@@ -189,7 +226,6 @@
     </style>
     <link rel="stylesheet" href="responsive.css">
     <link rel="icon" type="image/png" href="Icono.png">
-    <!-- App instalable (PWA) -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#55565b">
     <meta name="mobile-web-app-capable" content="yes">
@@ -225,10 +261,32 @@
         
         <header class="main-header card">
             <div class="header-left">
-                <img id="company-logo" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" alt="Logo empresa" />
-                <h1 class="main-title">Registro Diario</h1>
+                <!-- SE QUITARON LOS LOGOS Y SE COLOCÓ EL MENÚ SÁNDWICH -->
+                <div class="sandwich-menu-container">
+                    <button type="button" id="sandwich-toggle-btn" class="sandwich-btn" aria-label="Menú de navegación" aria-expanded="false">
+                        <svg class="icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
+                    <div id="sandwich-menu-dropdown" class="sandwich-dropdown hidden">
+                        <a href="reservas-spa.html">
+                            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                            Reservas de Spa
+                        </a>
+                        <a href="checklist.html">
+                            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012-2m-6 9l2 2 4-4"></path></svg>
+                            Checklist Diario
+                        </a>
+                        <a href="panelreservas.html">
+                            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            Panel de Reservas
+                        </a>
+                    </div>
+                </div>
+
+                <h1 class="main-title" style="display:inline-block; vertical-align:middle; margin-left:10px;">Registro Diario</h1>
                 
-                <div class="header-actions-container">
+                <div class="header-actions-container" style="margin-top: 10px;">
                     <div id="user-info" class="user-info-badge status-loading">
                         Cargando usuario...
                     </div>
@@ -257,13 +315,6 @@
                     </svg>
                     <span class="btn-text">Cerrar Sesión</span>
                 </button>
-                <a href="checklist.html" target="_blank" rel="opener" class="button button-secondary button-link" title="Abrir Check List Diario" aria-label="Abrir Check List Diario">
-                    <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M9 2a2 2 0 00-2 2v8a2 2 0 002 2h6a2 2 0 002-2V6.414A2 2 0 0016.586 5L13.5 1.914A2 2 0 0012.086 1.5H9z" />
-                        <path d="M11 2.5a.5.5 0 01.5-.5h.586a1 1 0 01.707.293l2.914 2.914a1 1 0 01.293.707V12a2 2 0 01-2 2H9a2 2 0 01-2-2V4a2 2 0 012-2h2v.5z" />
-                    </svg>
-                    <span class="btn-text">Check List</span>
-                </a>
             </div>
         </header>
 
@@ -414,6 +465,7 @@
         </div>
     </div>
 
+    <!-- Modales estándar -->
     <div id="message-modal" class="modal-overlay hidden" style="z-index: 10002;">
         <div class="modal-container card">
             <h3 id="modal-title" class="modal-title">Mensaje</h3>
@@ -531,8 +583,7 @@
                 <button type="button" class="btn-cerrar-modal" style="background: none; border: none; font-size: 1.8rem; line-height: 1; cursor: pointer; color: var(--color-texto-secundario); padding: 0;">&times;</button>
             </div>
             
-            <div id="mobile-detail-content" style="font-size: 0.95rem; line-height: 1.6; margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 0.6rem;">
-                </div>
+            <div id="mobile-detail-content" style="font-size: 0.95rem; line-height: 1.6; margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 0.6rem;"></div>
             
             <div class="modal-actions" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
                 <button id="mobile-btn-estado" class="button button-secondary" style="grid-column: span 2; padding: 0.8rem; font-weight: bold; border: 2px solid var(--color-texto-secundario);">Cambiar Estado</button>
@@ -709,21 +760,48 @@
     </div>
 
     <script>
-        /* Tema claro/oscuro: va en un script clásico para que funcione aunque Firebase no cargue */
+        /* Control interactivo del Menú Sándwich */
+        (function () {
+            document.addEventListener('DOMContentLoaded', function () {
+                var btn = document.getElementById('sandwich-toggle-btn');
+                var dropdown = document.getElementById('sandwich-menu-dropdown');
+                if (!btn || !dropdown) return;
+
+                btn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    var isHidden = dropdown.classList.contains('hidden');
+                    if (isHidden) {
+                        dropdown.classList.remove('hidden');
+                        btn.setAttribute('aria-expanded', 'true');
+                    } else {
+                        dropdown.classList.add('hidden');
+                        btn.setAttribute('aria-expanded', 'false');
+                    }
+                });
+
+                document.addEventListener('click', function (e) {
+                    if (!btn.contains(e.target) && !dropdown.contains(e.target)) {
+                        dropdown.classList.add('hidden');
+                        btn.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            });
+        })();
+    </script>
+
+    <script>
+        /* Tema claro/oscuro (se mantiene el selector de tema) */
         (function () {
             var sun = document.getElementById('theme-sun-icon');
             var moon = document.getElementById('theme-moon-icon');
             var btn = document.getElementById('theme-toggle-btn');
             var link = document.getElementById('theme-stylesheet');
-            var logo = document.getElementById('company-logo');
             var current = 'dark';
             try { if (localStorage.getItem('theme') === 'light') current = 'light'; } catch (e) {}
 
             function apply(theme) {
                 link.href = theme + '.css';
                 document.documentElement.setAttribute('data-theme', theme);
-                /* Tema claro -> logo1.png | tema oscuro -> logo2.png */
-                if (logo) logo.src = theme === 'light' ? 'logo1.png' : 'logo2.png';
                 sun.style.display = theme === 'dark' ? 'inline-block' : 'none';
                 moon.style.display = theme === 'light' ? 'inline-block' : 'none';
                 btn.title = theme === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro';
@@ -738,21 +816,18 @@
     </script>
 
     <script>
-        /* Barra de desplazamiento horizontal de la tabla de novedades:
-           fina, siempre visible en el borde inferior de la pantalla (mientras la tabla se vea), con sombras laterales. */
+        /* Barra de desplazamiento horizontal de la tabla de novedades */
         (function () {
             function init() {
                 var cont = document.querySelector('.scrollable-table-container');
                 if (!cont || document.getElementById('tsb')) return;
                 var table = cont.querySelector('table');
 
-                /* Envoltorio para las sombras de los bordes */
                 var shadow = document.createElement('div');
                 shadow.className = 'table-shadow-wrap';
                 cont.parentNode.insertBefore(shadow, cont);
                 shadow.appendChild(cont);
 
-                /* Barra propia (después de la tabla). #tsb-wrap reserva el lugar para que nada salte cuando la barra pasa a "fija" */
                 var wrap = document.createElement('div'); wrap.id = 'tsb-wrap';
                 var bar = document.createElement('div'); bar.id = 'tsb';
                 bar.setAttribute('role', 'scrollbar'); bar.setAttribute('aria-orientation', 'horizontal'); bar.setAttribute('aria-label', 'Desplazamiento horizontal de la tabla'); bar.tabIndex = 0;
@@ -764,7 +839,6 @@
 
                 function hayExceso() { return cont.scrollWidth > cont.clientWidth + 1; }
 
-                /* Posición y tamaño del "pulgar" + sombras de los bordes */
                 function sincronizar() {
                     var sw = cont.scrollWidth, cw = cont.clientWidth, exceso = sw - cw;
                     var tw = rail.clientWidth;
@@ -779,15 +853,13 @@
                     shadow.classList.toggle('can-right', exceso > 1 && cont.scrollLeft < exceso - 1);
                 }
 
-                /* Mostrar/ocultar y decidir si la barra va "fija" en el borde inferior de la pantalla o pegada debajo de la tabla */
                 function posicionar() {
                     var exceso = hayExceso();
                     wrap.style.display = exceso ? 'block' : 'none';
-                    /* Solo se toca la clase si hace falta: escribir "classList.remove" sin cambios también cuenta como mutación */
                     if (!exceso) { if (bar.classList.contains('is-fixed')) bar.classList.remove('is-fixed'); if (bar.getAttribute('style')) bar.removeAttribute('style'); sincronizar(); return; }
                     var r = cont.getBoundingClientRect(), vh = window.innerHeight || document.documentElement.clientHeight;
                     var modalAbierto = !!document.querySelector('.modal-overlay:not(.hidden)');
-                    var fija = r.bottom > vh && r.top < vh - 60;     /* el final de la tabla está más abajo de lo que se ve */
+                    var fija = r.bottom > vh && r.top < vh - 60;
                     bar.classList.toggle('is-fixed', fija);
                     if (fija) { bar.style.left = r.left + 'px'; bar.style.width = r.width + 'px'; bar.style.visibility = modalAbierto ? 'hidden' : 'visible'; }
                     else { bar.style.left = bar.style.width = ''; bar.style.visibility = ''; }
@@ -795,7 +867,6 @@
                 }
 
                 cont.addEventListener('scroll', sincronizar, { passive: true });
-                /* Todos los avisos pasan por aquí: como mucho un recálculo por cuadro de pantalla */
                 var pendiente = false;
                 function programar() {
                     if (pendiente) return;
@@ -806,14 +877,11 @@
                 window.addEventListener('resize', programar);
                 if (window.ResizeObserver) { var ro = new ResizeObserver(programar); ro.observe(cont); if (table) ro.observe(table); }
                 else setInterval(programar, 500);
-                /* Solo se vigilan las ventanas (modales) y el contenido principal; antes se vigilaba toda la página, incluida la propia barra,
-                   y al cerrar sesión se generaba un bucle infinito que congelaba la pantalla */
                 if (window.MutationObserver) {
                     var vigia = new MutationObserver(programar);
                     document.querySelectorAll('.modal-overlay, #main-content').forEach(function (el) { vigia.observe(el, { attributes: true, attributeFilter: ['class'] }); });
                 }
 
-                /* Arrastrar el pulgar / hacer clic en la barra para saltar a ese punto */
                 var arrastre = null;
                 function maxScroll() { return cont.scrollWidth - cont.clientWidth; }
                 function irA(clientX) {
@@ -851,26 +919,23 @@
     </script>
 
     <script>
-        /* Columnas de la tabla de novedades: ancho inicial automático, ajustables arrastrando la línea del encabezado,
-           con un MÍNIMO y un MÁXIMO por columna. Doble clic sobre una línea = volver al ancho inicial.
-           Los anchos elegidos se recuerdan en este navegador. */
+        /* Columnas de la tabla de novedades ajustables */
         (function () {
             var KEY = 'registro-diario:anchos-columnas-v2';
-            /* Por columna (en el orden del encabezado): [mínimo, máximo, ancho inicial]. null = la columna de casillas (fija). */
             var COL = [
-                null,            /* 0  casilla de selección (40 px fija) */
-                [75, 100, 80],   /* 1  Turno */
-                [95, 120, 100],  /* 2  Fecha */
-                [85, 130, 90],   /* 3  Prioridad */
-                [115, 190, 120], /* 4  Área/Elemento */
-                [75, 110, 80],   /* 5  Nº Reserva */
-                [60, 90, 62],    /* 6  Habit. */
-                [260, 650, 340], /* 7  Novedad (usa el espacio libre de la pantalla, dentro de sus límites) */
-                [120, 300, 140], /* 8  Notificado a */
-                [125, 150, 130], /* 9  Estado */
-                [60, 90, 65],    /* 10 Respuestas */
-                [60, 60, 60],    /* 11 Acciones ⋮ (fija) */
-                [110, 190, 110]  /* 12 Usuario */
+                null,
+                [75, 100, 80],
+                [95, 120, 100],
+                [85, 130, 90],
+                [115, 190, 120],
+                [75, 110, 80],
+                [60, 90, 62],
+                [260, 650, 340],
+                [120, 300, 140],
+                [125, 150, 130],
+                [60, 90, 65],
+                [60, 60, 60],
+                [110, 190, 110]
             ];
             var NOVEDAD = 7, CASILLA = 40, L = COL;
             function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
@@ -879,8 +944,7 @@
                 if (!table) return;
                 var cont = table.closest('.scrollable-table-container') || table.parentNode;
                 var ths = Array.prototype.slice.call(table.querySelectorAll('thead th'));
-                if (ths.length !== COL.length) return;   /* si cambia la cantidad de columnas, no se toca nada */
-                /* Los límites asumen ~24 px de relleno por celda; si el diseño real usa más, se suma la diferencia para que el texto no se parta */
+                if (ths.length !== COL.length) return;
                 var cs = getComputedStyle(ths[1]);
                 var extra = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0) + (parseFloat(cs.borderLeftWidth) || 0) + (parseFloat(cs.borderRightWidth) || 0);
                 var delta = Math.max(0, Math.round(extra - 24));
@@ -894,14 +958,13 @@
                         th.style.width = anchos[i] + 'px';
                         if (visible(i)) total += anchos[i];
                     });
-                    if (!total) return;   // la tabla está oculta (sesión cerrada): no se le pone ancho 0
+                    if (!total) return;
                     table.classList.add('cols-fixed');
                     table.style.width = Math.ceil(total) + 'px';
                     table.style.minWidth = '0'; table.style.maxWidth = 'none';
                 }
                 function porDefecto() {
                     anchos = L.map(function (c) { return c ? c[2] : CASILLA; });
-                    /* Novedad ocupa el espacio que sobra en pantalla (entre su mínimo y su máximo) */
                     var libre = cont.clientWidth;
                     if (libre > 0) {
                         var otros = 0;
@@ -917,14 +980,13 @@
                     porDefecto();
                 }
 
-                /* Manijas para arrastrar (no en la casilla ni en las columnas fijas) */
                 ths.forEach(function (th, i) {
                     var c = L[i];
                     if (!c || c[0] === c[1]) return;
                     if (getComputedStyle(th).position === 'static') th.style.position = 'relative';
                     var g = document.createElement('span');
                     g.className = 'col-resizer';
-                    g.title = 'Arrastrá para ajustar el ancho (mín. ' + c[0] + ' px · máx. ' + c[1] + ' px) · doble clic para restablecer todas';
+                    g.title = 'Arrastrá para ajustar el ancho · doble clic para restablecer todas';
                     th.appendChild(g);
                     g.addEventListener('dblclick', function (e) { e.preventDefault(); restablecer(); });
                     g.addEventListener('click', function (e) { e.stopPropagation(); });
@@ -944,7 +1006,6 @@
                     });
                 });
 
-                /* Anchos guardados (se corrigen si quedaron fuera de los límites) o ancho inicial */
                 try {
                     var g0 = JSON.parse(localStorage.getItem(KEY) || 'null');
                     if (Array.isArray(g0) && g0.length === COL.length) {
@@ -954,7 +1015,6 @@
                 } catch (e) {}
                 if (!personalizado) porDefecto();
 
-                /* Recalcular cuando cambia el tamaño de la pantalla o las columnas visibles (permisos) */
                 function refrescar() { if (personalizado) aplicar(); else porDefecto(); }
                 if (window.ResizeObserver) new ResizeObserver(function () { if (!personalizado) porDefecto(); }).observe(cont);
                 window.addEventListener('resize', function () { if (!personalizado) porDefecto(); });
@@ -965,17 +1025,15 @@
     </script>
 
     <script>
-        /* Registro del service worker (requisito para poder instalar la app) */
         if ('serviceWorker' in navigator && location.protocol !== 'file:') {
             window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
         }
     </script>
 
-    <!-- Los módulos (import) no funcionan abriendo el archivo con doble clic (file://): hace falta un servidor -->
     <script>
         if (location.protocol === 'file:') {
             var e = document.getElementById('login-error');
-            e.textContent = 'Abre esta página desde un servidor (http://), no con doble clic. Ej.: Live Server de VS Code, o "python -m http.server" en esta carpeta.';
+            e.textContent = 'Abre esta página desde un servidor (http://), no con doble clic.';
             e.classList.remove('hidden');
         }
     </script>

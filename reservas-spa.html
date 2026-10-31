@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Gestión y Reservas de Spa - Agua del Corral</title>
+
+    <!-- Librería para exportar a Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Configuración de Firebase (config.js) -->
+    <script src="config.js"></script>
+
+    <style>
+        .hidden { display: none !important; }
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background-color: #f8fafc; color: #1e293b; margin: 0; padding: 1.5rem; }
+
+        .panel-container { max-width: 1200px; margin: 0 auto; }
+        .brand-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 2px solid rgba(8, 145, 178, 0.15); padding-bottom: 1rem; flex-wrap: wrap; gap: 1rem; }
+        .brand-header h1 { font-family: 'Playfair Display', serif; font-size: 1.8rem; margin: 0; color: #0891b2; }
+        .brand-header p { margin: 0.2rem 0 0; font-size: 0.9rem; opacity: 0.75; }
+        .header-right { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; font-size: 0.9rem; }
+        .header-right a { color: #0891b2; text-decoration: none; font-weight: 600; }
+        .btn-small { background: #ffffff; border: 1px solid rgba(128,128,128,0.4); color: #1e293b; border-radius: 6px; padding: 0.35rem 0.8rem; font-size: 0.85rem; cursor: pointer; }
+        .btn-small:hover { background: #f1f5f9; }
+
+        /* Tarjeta de Formulario con Fondo Beige Muy Claro */
+        .form-card { background: #fdfbf7; border: 1px solid rgba(217, 180, 138, 0.35); border-radius: 16px; padding: 1.8rem; margin-bottom: 2rem; box-shadow: 0 10px 25px rgba(0,0,0,0.03); }
+        .form-card-title { font-family: 'Playfair Display', serif; font-size: 1.3rem; margin-top: 0; margin-bottom: 1.2rem; color: #0891b2; border-bottom: 1px solid rgba(217, 180, 138, 0.3); padding-bottom: 0.8rem; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+        .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+        .form-group-full { grid-column: 1 / -1; }
+        .form-label { font-size: 0.85rem; font-weight: 600; color: #334155; }
+        .form-input, .form-select, .form-textarea { padding: 0.65rem 0.85rem; border-radius: 8px; border: 1px solid rgba(128,128,128,0.3); background: #ffffff; color: #1e293b; font-size: 0.95rem; font-family: inherit; box-sizing: border-box; width: 100%; transition: border-color 0.2s, box-shadow 0.2s; }
+        .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: #0891b2; box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.15); }
+        .form-textarea { resize: vertical; min-height: 70px; }
+
+        .btn-primary { background: #0891b2; color: white; border: none; padding: 0.75rem 1.5rem; font-size: 0.95rem; font-weight: 600; border-radius: 8px; cursor: pointer; transition: filter 0.2s; }
+        .btn-primary:hover { filter: brightness(1.1); }
+        .btn-primary:disabled { opacity: 0.6; cursor: wait; }
+
+        /* Controles, Filtros y Tabla */
+        .card { background: #ffffff; border: 1px solid rgba(128, 128, 128, 0.2); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+        .table-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem; }
+        .button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: 600; border-radius: 8px; border: 1px solid transparent; cursor: pointer; transition: background 0.15s, filter 0.15s; text-decoration: none; }
+        .button-orange { background: #ea580c; color: white; }
+        .button-orange:hover { background: #c2410c; }
+        .button-gray { background: #e2e8f0; color: #334155; }
+        .button-gray:hover { background: #cbd5e1; }
+        .button-danger { background: #ef4444; color: white; }
+        .button-danger:hover { background: #dc2626; }
+
+        .scrollable-table-container { width: 100%; overflow-x: auto; margin-bottom: 1rem; }
+        .novedades-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; text-align: left; table-layout: fixed; }
+        .novedades-table th, .novedades-table td { padding: 0.75rem 0.85rem; border-bottom: 1px solid rgba(128, 128, 128, 0.2); border-right: 1px solid rgba(128,128,128,0.2); vertical-align: middle; color: #1e293b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; box-sizing: border-box; }
+        .novedades-table th:last-child, .novedades-table td:last-child { border-right: 0; }
+        .novedades-table th { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; background: #f1f5f9; font-weight: 700; position: relative; }
+        .novedades-table tr:hover { background: rgba(8, 145, 178, 0.02); }
+
+        /* Manija para arrastrar columnas */
+        .col-resizer { position: absolute; top: 0; right: -5px; width: 11px; height: 100%; cursor: col-resize; user-select: none; touch-action: none; z-index: 3; }
+        .col-resizer::after { content: ''; position: absolute; top: 15%; bottom: 15%; left: 5px; width: 1px; background: transparent; }
+        .col-resizer:hover::after, .col-resizer.is-dragging::after { background: #0891b2; width: 3px; left: 4px; border-radius: 2px; }
+
+        /* Estado Pill */
+        .estado-pill { display: inline-flex; align-items: center; gap: 6px; padding: 0.28rem 0.7rem; border-radius: 999px; font-size: 0.82rem; font-weight: 700; border: 1px solid transparent; cursor: pointer; transition: filter 0.15s; }
+        .estado-pill .estado-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+        .estado-pill.is-pendiente { background: rgba(245,158,11,0.18); color: #b45309; border-color: rgba(245,158,11,0.55); }
+        .estado-pill.is-resuelto { background: rgba(16,185,129,0.18); color: #047857; border-color: rgba(16,185,129,0.55); }
+        .estado-pill:hover { filter: brightness(1.1); }
+
+        /* Modal Luminoso */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 1rem; box-sizing: border-box; }
+        .modal-container { background: #ffffff; border-radius: 16px; width: 100%; max-width: 650px; max-height: 90vh; overflow-y: auto; padding: 1.8rem; box-shadow: 0 20px 40px rgba(0,0,0,0.15); color: #1e293b; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(128,128,128,0.2); padding-bottom: 0.8rem; margin-bottom: 1.2rem; }
+        .modal-title { font-family: 'Playfair Display', serif; font-size: 1.4rem; margin: 0; color: #0891b2; }
+        .close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #1e293b; opacity: 0.7; }
+        .close-btn:hover { opacity: 1; }
+
+        .modal-section { margin-bottom: 1.2rem; background: #f8fafc; padding: 1rem; border-radius: 10px; border: 1px solid rgba(128,128,128,0.1); }
+        .modal-section-title { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: bold; color: #0891b2; margin-bottom: 0.6rem; }
+
+        .detail-row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.35rem 0; font-size: 0.92rem; border-bottom: 1px dashed rgba(128,128,128,0.15); }
+        .detail-row:last-child { border-bottom: none; }
+        .detail-label { opacity: 0.7; font-weight: 500; }
+        .detail-value { font-weight: 600; text-align: right; overflow-wrap: anywhere; }
+
+        .form-select-inline, .form-input-inline { padding: 0.35rem 0.6rem; border-radius: 6px; border: 1px solid rgba(128,128,128,0.3); background: #ffffff; color: #1e293b; font-size: 0.9rem; font-weight: 600; }
+
+        .actions-container { display: flex; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap; }
+        .btn-action { padding: 0.7rem 1rem; border-radius: 8px; font-weight: 600; font-size: 0.9rem; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 6px; border: none; transition: filter 0.2s; }
+        .btn-copy-all { background: #0891b2; color: white; flex: 1; }
+        .btn-edit-mode { background: #475569; color: white; }
+        .btn-delete { background: #ef4444; color: white; }
+
+        /* Notas internas */
+        .card-notes { display: inline-block; margin-top: 0.4rem; font-size: 0.78rem; font-weight: 700; color: #b45309; background: rgba(245,158,11,0.16); border-radius: 999px; padding: 0.15rem 0.6rem; }
+        .nota { background: #f1f5f9; border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 0.6rem 0.8rem; margin-bottom: 0.6rem; }
+        .nota-texto { font-size: 0.92rem; line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere; color: #1e293b; }
+        #nota-form textarea { width: 100%; box-sizing: border-box; padding: 0.6rem 0.8rem; border-radius: 8px; border: 1px solid rgba(128,128,128,0.3); background: #ffffff; color: #1e293b; font: inherit; font-size: 0.92rem; resize: vertical; }
+        #nota-form button { margin-top: 0.5rem; background: #0891b2; color: #fff; border: none; border-radius: 8px; padding: 0.55rem 1.1rem; font-weight: 600; cursor: pointer; }
+
+        /* Login Luminoso */
+        .login-box { max-width: 360px; margin: 12vh auto 0; background: #ffffff; border: 1px solid rgba(128,128,128,0.2); border-radius: 16px; padding: 2rem; box-shadow: 0 10px 25px rgba(0,0,0,0.08); color: #1e293b; }
+        .login-box h2 { font-family: 'Playfair Display', serif; color: #0891b2; margin: 0 0 0.3rem; }
+        .login-box p.sub { margin: 0 0 1.2rem; opacity: 0.7; font-size: 0.9rem; }
+        .login-box label { display: block; font-size: 0.85rem; font-weight: 600; margin: 0.8rem 0 0.3rem; }
+        .login-box input { width: 100%; box-sizing: border-box; padding: 0.65rem 0.85rem; border-radius: 8px; border: 1px solid rgba(128,128,128,0.3); background: #ffffff; color: #1e293b; font-size: 0.95rem; }
+        .login-box button { width: 100%; margin-top: 1.2rem; padding: 0.8rem; border: none; border-radius: 8px; background: #0891b2; color: #fff; font-weight: 600; font-size: 1rem; cursor: pointer; }
+        .login-error { color: #ef4444; font-size: 0.88rem; font-weight: 600; margin: 0.8rem 0 0; }
+
+        .toast { position: fixed; bottom: 20px; right: 20px; background: #10b981; color: white; padding: 0.75rem 1.25rem; border-radius: 8px; font-size: 0.9rem; font-weight: 600; z-index: 2000; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .toast-error { background: #ef4444; }
+    </style>
+    <link rel="icon" type="image/png" href="Icono.png">
+</head>
+<body>
+
+    <!-- Pantalla de Login -->
+    <div id="login-view" class="login-box hidden">
+        <h2>Agua del Corral</h2>
+        <p class="sub">Panel de Spa. Ingresá con tu usuario y clave.</p>
+        <form id="login-form">
+            <label for="login-usuario">Usuario</label>
+            <input type="text" id="login-usuario" autocomplete="username" required>
+            <label for="login-clave">Clave</label>
+            <input type="password" id="login-clave" autocomplete="current-password" required>
+            <p id="login-error" class="login-error hidden" role="alert"></p>
+            <button type="submit" id="login-btn">Entrar</button>
+        </form>
+    </div>
+
+    <!-- Vista Principal Unificada -->
+    <div id="panel-view" class="panel-container hidden">
+        <div class="brand-header">
+            <div>
+                <h1>Agua del Corral</h1>
+                <p>Restaurante &amp; SPA — Gestión y Registro de Turnos de Spa</p>
+            </div>
+            <div class="header-right">
+                <span id="user-name"></span>
+                <button type="button" id="logout-btn" class="btn-small">Cerrar sesión</button>
+            </div>
+        </div>
+
+        <!-- Formulario de Registro Rápido con Fondo Beige Muy Claro -->
+        <div class="form-card">
+            <h2 class="form-card-title">✨ Registrar Nueva Reserva de Spa</h2>
+            <form id="reserva-spa-form">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="fecha-turno" class="form-label">Fecha del Turno *</label>
+                        <input type="date" id="fecha-turno" required class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="horario-turno" class="form-label">Horario *</label>
+                        <input type="time" id="horario-turno" required class="form-input" value="15:00">
+                    </div>
+                    <div class="form-group">
+                        <label for="n-reserva-hotel" class="form-label">Nº de Reserva de Hotel (Opcional)</label>
+                        <input type="text" id="n-reserva-hotel" class="form-input" placeholder="Ej: 32325">
+                    </div>
+                    <div class="form-group">
+                        <label for="n-habitacion" class="form-label">Número de Habitación *</label>
+                        <input type="text" id="n-habitacion" required class="form-input" placeholder="Ej: 204">
+                    </div>
+                    <div class="form-group">
+                        <label for="nombre-huespedes" class="form-label">Nombre de Huésped(es) *</label>
+                        <input type="text" id="nombre-huespedes" required class="form-input" placeholder="Nombre completo">
+                    </div>
+                    <div class="form-group">
+                        <label for="tipo-servicio" class="form-label">Tipo de Servicio *</label>
+                        <input type="text" id="tipo-servicio" required class="form-input" placeholder="Ej: Masaje Descontracturante">
+                    </div>
+                    <div class="form-group">
+                        <label for="duracion" class="form-label">Duración</label>
+                        <input type="text" id="duracion" class="form-input" value="60 minutos" placeholder="Ej: 60 minutos">
+                    </div>
+                    <div class="form-group">
+                        <label for="telefono" class="form-label">Teléfono del Huésped</label>
+                        <input type="tel" id="telefono" class="form-input" placeholder="+54 9 ...">
+                    </div>
+                    <div class="form-group">
+                        <label for="asignado-a" class="form-label">Asignar a Personal (Opcional)</label>
+                        <input type="text" id="asignado-a" class="form-input" placeholder="Nombre del profesional">
+                    </div>
+                    <div class="form-group form-group-full">
+                        <label for="notas-reserva" class="form-label">Notas / Observaciones</label>
+                        <textarea id="notas-reserva" class="form-textarea" placeholder="Preferencias, restricciones o requerimientos..."></textarea>
+                    </div>
+                </div>
+                <div style="margin-top: 1.5rem; text-align: right;">
+                    <button type="submit" id="btn-guardar" class="btn-primary">Registrar Turno de Spa</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Sección de Filtros y Búsqueda -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 class="form-label" style="font-size: 1.05rem; margin: 0; font-weight: bold; color: #0891b2;">🔍 Filtros y Búsqueda de Reservas</h3>
+                <button type="button" id="clear-filters-btn" class="button button-gray" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">Limpiar Filtros</button>
+            </div>
+            <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem;">
+                <div class="form-group">
+                    <label for="filter-estado" class="form-label" style="font-size: 0.8rem;">Estado</label>
+                    <select id="filter-estado" class="form-select" style="padding: 0.4rem; font-size: 0.9rem;">
+                        <option value="">Todos</option>
+                        <option value="Pendiente">Pendiente</option>
+                        <option value="Resuelto">Resuelto</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="filter-fecha" class="form-label" style="font-size: 0.8rem;">Fecha del Turno</label>
+                    <input type="date" id="filter-fecha" class="form-input" style="padding: 0.4rem; font-size: 0.9rem;">
+                </div>
+                <div class="form-group form-group-full">
+                    <label for="filter-text" class="form-label" style="font-size: 0.8rem;">Búsqueda por texto (huésped, habitación, servicio o código)...</label>
+                    <input type="text" id="filter-text" class="form-input" placeholder="Escribe para filtrar la tabla..." style="padding: 0.4rem; font-size: 0.9rem;">
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla Estilo Index con Botón de Exportar a Excel -->
+        <div class="card">
+            <div class="table-actions">
+                <span id="counter-badge" style="font-weight: bold; color: #0891b2;">Cargando turnos...</span>
+                <button id="export-excel-btn" class="button button-orange" title="Exportar todas las reservas filtradas a Excel">
+                    📥 Exportar a Excel (XLSX)
+                </button>
+            </div>
+
+            <div class="scrollable-table-container">
+                <table class="novedades-table">
+                    <thead>
+                        <tr>
+                            <th>Nº Reserva Spa</th>
+                            <th>Nº Reserva Hotel</th>
+                            <th>Fecha y Hora</th>
+                            <th>Habitación</th>
+                            <th>Huésped</th>
+                            <th>Servicio (Duración)</th>
+                            <th>Asignado a</th>
+                            <th>Estado</th>
+                            <th>Teléfono</th>
+                            <th style="text-align: center;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="novedades-log">
+                        <!-- Las filas se cargan dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Detalle / Edición / Notas -->
+    <div id="detail-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+        <div class="modal-container">
+            <div class="modal-header">
+                <div>
+                    <h2 id="modal-ref-title" class="modal-title">Turno</h2>
+                    <span id="modal-created-at" style="font-size:0.78rem; opacity:0.6;"></span>
+                </div>
+                <button type="button" class="close-btn" id="btn-close-modal" aria-label="Cerrar">&times;</button>
+            </div>
+
+            <div id="modal-body-content"></div>
+
+            <div class="modal-section" id="notas-section-container">
+                <div class="modal-section-title">Notas internas</div>
+                <div id="notas-lista"></div>
+                <form id="nota-form">
+                    <textarea id="nota-texto" rows="2" maxlength="1000" required placeholder="Escribí una nota sobre este turno..."></textarea>
+                    <button type="submit" id="nota-btn">Agregar nota</button>
+                </form>
+            </div>
+
+            <div class="actions-container">
+                <button type="button" id="btn-copy-full" class="btn-action btn-copy-all">📋 Copiar Datos</button>
+                <button type="button" id="btn-edit-toggle" class="btn-action btn-edit-mode">✏️ Editar Reserva</button>
+                <button type="button" id="btn-delete-reserva" class="btn-action btn-delete">🗑️ Eliminar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore-compat.js"></script>
+
+    <script>
+        const COL_SPA = 'hotel_spa_reservas';
+        const SESSION_KEY = 'registro-diario:sesion';
+
+        const $ = id => document.getElementById(id);
+        const esc = v => String(v ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+
+        let db, auth;
+        let session = null;
+        let unsub = null;
+        let reservas = [];
+        let seleccionada = null;
+        let modoEdicion = false;
+
+        // Formatear fecha y hora para la tabla visual (ej: 31/10/26 - 15hs)
+        function formatearFechaHora(fechaStr, horaStr) {
+            if (!fechaStr) return '-';
+            const [anio, mes, dia] = fechaStr.split('-');
+            const anioCorto = anio ? anio.slice(-2) : '';
+            const horaLimpia = horaStr ? horaStr.split(':')[0] : '00';
+            return `${dia}/${mes}/${anioCorto} - ${horaLimpia}hs`;
+        }
+
+        function toast(msg, esError = false) {
+            const t = document.createElement('div');
+            t.className = 'toast' + (esError ? ' toast-error' : '');
+            t.textContent = msg;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 3000);
+        }
+
+        async function iniciarSesion(usuario, clave) {
+            const id = String(usuario || '').trim().toLowerCase();
+            if (!id) throw new Error('Ingresá tu usuario.');
+            const snap = await db.collection('hotel_users').doc(id).get();
+            if (!snap.exists || (clave !== null && snap.data().clave !== clave)) throw new Error('Usuario o clave incorrectos.');
+            const u = snap.data();
+            const rolSnap = await db.collection('hotel_roles').doc(u.rolId).get();
+            const permisos = rolSnap.exists ? (rolSnap.data().permisos || {}) : {};
+            session = { id, nombre: u.nombre, puedeBorrar: u.rolId === 'admin' || permisos.borrar === true };
+            try { sessionStorage.setItem(SESSION_KEY, id); } catch (_) {}
+            mostrarPanel();
+        }
+
+        function mostrarLogin() {
+            $('panel-view').classList.add('hidden');
+            $('login-view').classList.remove('hidden');
+            $('login-clave').value = '';
+            $('login-usuario').focus();
+        }
+
+        function mostrarPanel() {
+            $('login-view').classList.add('hidden');
+            $('panel-view').classList.remove('hidden');
+            $('user-name').textContent = session.nombre;
+            escucharReservas();
+        }
+
+        function cerrarSesion() {
+            if (unsub) unsub();
+            session = null;
+            reservas = [];
+            try { sessionStorage.removeItem(SESSION_KEY); } catch (_) {}
+            cerrarModal();
+            mostrarLogin();
+        }
+
+        function escucharReservas() {
+            if (unsub) unsub();
+            unsub = db.collection(COL_SPA).orderBy('timestamp', 'desc').limit(500).onSnapshot(snap => {
+                reservas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                filtrarYRenderizar();
+                if (seleccionada) {
+                    const actual = reservas.find(r => r.id === seleccionada.id);
+                    if (actual) { 
+                        seleccionada = actual; 
+                        if (!modoEdicion) { abrirModal(actual); }
+                    }
+                    else cerrarModal();
+                }
+            }, err => {
+                console.error('Error al leer reservas:', err);
+                $('counter-badge').textContent = 'No se pudieron cargar las reservas';
+            });
+        }
+
+        function obtenerFiltradas() {
+            const estadoF = $('filter-estado').value;
+            const fechaF = $('filter-fecha').value;
+            const textF = $('filter-text').value.toLowerCase().trim();
+
+            return reservas.filter(r => {
+                if (estadoF && r.estado !== estadoF) return false;
+                if (fechaF && r.fechaTurno !== fechaF) return false;
+                if (textF) {
+                    const combinado = `${r.huespedes || ''} ${r.habitacion || ''} ${r.servicio || ''} ${r.nReserva || ''} ${r.nReservaHotel || ''} ${r.asignadoA || ''} ${r.telefono || ''}`.toLowerCase();
+                    if (!combinado.includes(textF)) return false;
+                }
+                return true;
+            });
+        }
+
+        function filtrarYRenderizar() {
+            const filtradas = obtenerFiltradas();
+            const tbody = $('novedades-log');
+
+            $('counter-badge').textContent = `${filtradas.length} Registro(s) encontrado(s)`;
+
+            if (!filtradas.length) {
+                tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 2rem; opacity: 0.6; white-space: normal;">No se encontraron turnos de spa registrados con los filtros actuales.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtradas.map(r => {
+                const estadoClase = r.estado === 'Resuelto' ? 'is-resuelto' : 'is-pendiente';
+                const notasCount = r.notas?.length ? `<span class="card-notes">📝 ${r.notas.length}</span>` : '';
+                const fechaHoraCompacta = formatearFechaHora(r.fechaTurno, r.horarioTurno);
+                return `
+                    <tr data-id="${esc(r.id)}" style="cursor: pointer;">
+                        <td><strong>#${esc(r.nReserva)}</strong> ${notasCount}</td>
+                        <td>${esc(r.nReservaHotel || '-')}</td>
+                        <td>${esc(fechaHoraCompacta)}</td>
+                        <td>Hab. <strong>${esc(r.habitacion)}</strong></td>
+                        <td><strong>${esc(r.huespedes)}</strong></td>
+                        <td>${esc(r.servicio)} <small style="opacity:0.7;">(${esc(r.duracion || '60 min')})</small></td>
+                        <td>${esc(r.asignadoA || 'Sin asignar')}</td>
+                        <td>
+                            <button type="button" class="estado-pill ${estadoClase}" data-action="toggle-estado" data-id="${esc(r.id)}" title="Clic para alternar estado">
+                                <span class="estado-dot"></span>${esc(r.estado || 'Pendiente')}
+                            </button>
+                        </td>
+                        <td>${esc(r.telefono || '-')}</td>
+                        <td style="text-align: center; white-space: nowrap;">
+                            <button type="button" class="button button-gray" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;" data-action="ver-detalle" data-id="${esc(r.id)}">Ver / Notas</button>
+                            <button type="button" class="button button-danger" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin-left: 4px;" data-action="eliminar" data-id="${esc(r.id)}" title="Eliminar reserva">🗑️</button>
+                        </td>
+                    </tr>`;
+            }).join('');
+        }
+
+        async function cambiarEstadoDirecto(id) {
+            const r = reservas.find(x => x.id === id);
+            if (!r) return;
+            const nuevoEstado = r.estado === 'Resuelto' ? 'Pendiente' : 'Resuelto';
+            try {
+                await db.collection(COL_SPA).doc(id).update({ estado: nuevoEstado });
+                toast('Estado actualizado a ' + nuevoEstado);
+            } catch (err) {
+                toast('Error al actualizar estado', true);
+            }
+        }
+
+        async function eliminarReservaPorId(id) {
+            if (!confirm('¿Estás seguro de que deseas eliminar esta reserva de spa?')) return;
+            try {
+                await db.collection(COL_SPA).doc(id).delete();
+                toast('Reserva eliminada con éxito.');
+                cerrarModal();
+            } catch (err) {
+                console.error(err);
+                toast('Error al eliminar la reserva.', true);
+            }
+        }
+
+        function abrirModal(r) {
+            seleccionada = r;
+            modoEdicion = false;
+            pintarContenidoModal();
+            $('detail-modal').classList.remove('hidden');
+        }
+
+        function pintarContenidoModal() {
+            const r = seleccionada;
+            $('modal-ref-title').textContent = `Turno #${r.nReserva}`;
+            $('modal-created-at').textContent = `Creado: ${r.timestamp?.toDate ? r.timestamp.toDate().toLocaleString('es-ES') : 'Reciente'}`;
+
+            const fila = (etiqueta, valor) => `<div class="detail-row"><span class="detail-label">${esc(etiqueta)}</span><span class="detail-value">${esc(valor)}</span></div>`;
+
+            if (!modoEdicion) {
+                $('notas-section-container').style.display = 'block';
+                $('btn-edit-toggle').textContent = '✏️ Editar Reserva';
+
+                $('modal-body-content').innerHTML = `
+                    <div class="modal-section">
+                        <div class="modal-section-title">Detalles del Servicio</div>
+                        ${fila('Nº Reserva Hotel:', r.nReservaHotel || 'No especificado')}
+                        ${fila('Servicio:', r.servicio)}
+                        ${fila('Duración:', r.duracion || '-')}
+                        ${fila('Fecha Turno:', r.fechaTurno)}
+                        ${fila('Horario:', r.horarioTurno + ' hs')}
+                    </div>
+                    <div class="modal-section">
+                        <div class="modal-section-title">Huésped y Habitación</div>
+                        ${fila('Huésped(es):', r.huespedes)}
+                        ${fila('Habitación:', r.habitacion)}
+                        ${fila('Teléfono:', r.telefono || '-')}
+                        ${fila('Notas iniciales:', r.notasUsuario || 'Ninguna')}
+                    </div>
+                    <div class="modal-section">
+                        <div class="modal-section-title">Estado y Asignación</div>
+                        <div class="detail-row">
+                            <span class="detail-label">Estado:</span>
+                            <select id="modal-estado-select" class="form-select-inline">
+                                <option value="Pendiente" ${r.estado === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
+                                <option value="Resuelto" ${r.estado === 'Resuelto' ? 'selected' : ''}>Resuelto</option>
+                            </select>
+                        </div>
+                        <div class="detail-row" style="margin-top:0.5rem;">
+                            <span class="detail-label">Asignar a:</span>
+                            <input type="text" id="modal-asignado-input" class="form-input-inline" value="${esc(r.asignadoA || '')}" placeholder="Nombre del profesional">
+                        </div>
+                    </div>`;
+
+                $('modal-estado-select').addEventListener('change', async e => {
+                    await db.collection(COL_SPA).doc(r.id).update({ estado: e.target.value });
+                    toast('Estado actualizado a ' + e.target.value);
+                });
+                $('modal-asignado-input').addEventListener('change', async e => {
+                    await db.collection(COL_SPA).doc(r.id).update({ asignadoA: e.target.value.trim() });
+                    toast('Personal asignado correctamente');
+                });
+
+                renderNotas(r);
+            } else {
+                $('notas-section-container').style.display = 'none';
+                $('btn-edit-toggle').textContent = '❌ Cancelar Edición';
+
+                $('modal-body-content').innerHTML = `
+                    <form id="form-editar-reserva" class="form-grid" style="gap: 0.8rem;">
+                        <div class="form-group">
+                            <label class="form-label">Fecha del Turno *</label>
+                            <input type="date" id="edit-fecha" class="form-input" value="${esc(r.fechaTurno)}" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Horario *</label>
+                            <input type="time" id="edit-horario" class="form-input" value="${esc(r.horarioTurno)}" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Nº Reserva Hotel</label>
+                            <input type="text" id="edit-reserva-hotel" class="form-input" value="${esc(r.nReservaHotel || '')}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Habitación *</label>
+                            <input type="text" id="edit-habitacion" class="form-input" value="${esc(r.habitacion)}" required>
+                        </div>
+                        <div class="form-group form-group-full">
+                            <label class="form-label">Huésped(es) *</label>
+                            <input type="text" id="edit-huespedes" class="form-input" value="${esc(r.huespedes)}" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Servicio *</label>
+                            <input type="text" id="edit-servicio" class="form-input" value="${esc(r.servicio)}" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Duración</label>
+                            <input type="text" id="edit-duracion" class="form-input" value="${esc(r.duracion || '')}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Teléfono</label>
+                            <input type="tel" id="edit-telefono" class="form-input" value="${esc(r.telefono || '')}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Personal Asignado</label>
+                            <input type="text" id="edit-asignado" class="form-input" value="${esc(r.asignadoA || '')}">
+                        </div>
+                        <div class="form-group form-group-full">
+                            <label class="form-label">Notas / Observaciones</label>
+                            <textarea id="edit-notas-usuario" class="form-textarea" rows="2">${esc(r.notasUsuario || '')}</textarea>
+                        </div>
+                        <div class="form-group form-group-full" style="margin-top: 0.5rem; text-align: right;">
+                            <button type="submit" class="btn-primary" style="width: 100%;">Guardar Todos los Cambios</button>
+                        </div>
+                    </form>`;
+
+                $('form-editar-reserva').addEventListener('submit', async ev => {
+                    ev.preventDefault();
+                    const nuevaFecha = $('edit-fecha').value;
+                    const nuevoHotelRes = $('edit-reserva-hotel').value.trim();
+
+                    let parteFecha = '000000';
+                    if (nuevaFecha) {
+                        const [anio, mes, dia] = nuevaFecha.split('-');
+                        if (anio && mes && dia) parteFecha = `${dia}${mes}${anio.slice(-2)}`;
+                    }
+
+                    let nuevoCodigo = r.nReserva;
+                    if (nuevaFecha !== r.fechaTurno || nuevoHotelRes !== (r.nReservaHotel || '')) {
+                        if (nuevoHotelRes) {
+                            nuevoCodigo = `${parteFecha}-${nuevoHotelRes}`;
+                        } else {
+                            const sufijo = r.nReserva.includes('-') ? r.nReserva.split('-')[1] : 'ABC12';
+                            nuevoCodigo = `${parteFecha}-${sufijo}`;
+                        }
+                    }
+
+                    const datosActualizados = {
+                        nReserva: nuevoCodigo,
+                        nReservaHotel: nuevoHotelRes,
+                        fechaTurno: nuevaFecha,
+                        horarioTurno: $('edit-horario').value,
+                        habitacion: $('edit-habitacion').value.trim(),
+                        huespedes: $('edit-huespedes').value.trim(),
+                        servicio: $('edit-servicio').value.trim(),
+                        duracion: $('edit-duracion').value.trim(),
+                        telefono: $('edit-telefono').value.trim(),
+                        asignadoA: $('edit-asignado').value.trim(),
+                        notasUsuario: $('edit-notas-usuario').value.trim()
+                    };
+
+                    try {
+                        await db.collection(COL_SPA).doc(r.id).update(datosActualizados);
+                        toast('Reserva actualizada correctamente.');
+                        seleccionada = { ...r, ...datosActualizados };
+                        modoEdicion = false;
+                        pintarContenidoModal();
+                    } catch (err) {
+                        console.error(err);
+                        toast('Error al actualizar la reserva.', true);
+                    }
+                });
+            }
+        }
+
+        function cerrarModal() {
+            seleccionada = null;
+            modoEdicion = false;
+            $('detail-modal').classList.add('hidden');
+        }
+
+        function renderNotas(r) {
+            const notas = r.notas || [];
+            const fmt = iso => { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); };
+            $('notas-lista').innerHTML = notas.length
+                ? notas.map((n, i) => `
+                    <div class="nota">
+                        <div class="modal-section-title" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.2rem;">
+                            <span>${esc(n.user || 'Sistema')} · ${esc(fmt(n.timestamp))}</span>
+                            <button type="button" class="nota-del" data-i="${i}" style="background:none; border:none; color:#ef4444; cursor:pointer; font-weight:bold;">Borrar</button>
+                        </div>
+                        <div class="nota-texto">${esc(n.text)}</div>
+                    </div>`).join('')
+                : '<p style="font-size:0.88rem; opacity:0.6; margin:0 0 0.6rem;">Sin notas internas.</p>';
+        }
+
+        async function agregarNota(e) {
+            e.preventDefault();
+            if (!seleccionada || !session) return;
+            const texto = $('nota-texto').value.trim();
+            if (!texto) return;
+            try {
+                await db.collection(COL_SPA).doc(seleccionada.id).update({
+                    notas: firebase.firestore.FieldValue.arrayUnion({ text: texto, user: session.nombre, timestamp: new Date().toISOString() })
+                });
+                $('nota-texto').value = '';
+                toast('Nota agregada.');
+            } catch (err) { toast('Error al agregar nota', true); }
+        }
+
+        async function guardarNuevaReserva(e) {
+            e.preventDefault();
+            const btn = $('btn-guardar');
+            btn.disabled = true;
+            btn.textContent = 'Guardando...';
+
+            const fechaVal = $('fecha-turno').value;
+            let parteFecha = '000000';
+            if (fechaVal) {
+                const [anio, mes, dia] = fechaVal.split('-');
+                if (anio && mes && dia) {
+                    parteFecha = `${dia}${mes}${anio.slice(-2)}`;
+                }
+            }
+
+            const reservaHotel = $('n-reserva-hotel').value.trim();
+            let codigoFinal = '';
+
+            if (reservaHotel) {
+                codigoFinal = `${parteFecha}-${reservaHotel}`;
+            } else {
+                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                let randomStr = '';
+                for (let i = 0; i < 5; i++) {
+                    randomStr += chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+                codigoFinal = `${parteFecha}-${randomStr}`;
+            }
+
+            try {
+                await db.collection(COL_SPA).add({
+                    nReserva: codigoFinal,
+                    nReservaHotel: reservaHotel || '',
+                    estado: 'Pendiente',
+                    fechaTurno: fechaVal,
+                    horarioTurno: $('horario-turno').value,
+                    habitacion: $('n-habitacion').value.trim(),
+                    huespedes: $('nombre-huespedes').value.trim(),
+                    servicio: $('tipo-servicio').value.trim(),
+                    duracion: $('duracion').value.trim(),
+                    telefono: $('telefono').value.trim(),
+                    asignadoA: $('asignado-a').value.trim(),
+                    notasUsuario: $('notas-reserva').value.trim(),
+                    notas: [],
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                $('reserva-spa-form').reset();
+                const hoy = new Date();
+                const pad = n => String(n).padStart(2, '0');
+                $('fecha-turno').value = `${hoy.getFullYear()}-${pad(hoy.getMonth() + 1)}-${pad(hoy.getDate())}`;
+                $('horario-turno').value = '15:00';
+                $('duracion').value = '60 minutos';
+                toast(`Turno #${codigoFinal} registrado con éxito.`);
+            } catch (err) {
+                console.error(err);
+                toast('Error al registrar el turno.', true);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Registrar Turno de Spa';
+            }
+        }
+
+        // EXPORTACIÓN A EXCEL NATIVA (Forzando tipo Texto 's' para bloquear el formato USA)
+        function exportarExcel() {
+            const datosFiltrados = obtenerFiltradas();
+            if (!datosFiltrados.length) {
+                toast('No hay datos para exportar.', true);
+                return;
+            }
+
+            // Crear la matriz de datos manual en formato de texto estricto
+            const headers = [
+                'Nº Reserva Spa', 'Nº Reserva Hotel', 'Fecha Turno', 'Horario', 
+                'Habitación', 'Huésped', 'Servicio', 'Duración', 'Asignado a', 
+                'Estado', 'Teléfono', 'Notas Huésped', 'Notas Internas'
+            ];
+
+            const aoa = [headers];
+
+            datosFiltrados.forEach(r => {
+                let fechaTexto = '';
+                if (r.fechaTurno) {
+                    const [anio, mes, dia] = r.fechaTurno.split('-');
+                    if (anio && mes && dia) {
+                        fechaTexto = `${dia}/${mes}/${anio}`; // Formato exacto 31/10/2026
+                    } else {
+                        fechaTexto = r.fechaTurno;
+                    }
+                }
+
+                const notasInternas = (r.notas || []).map(n => `${n.user}: ${n.text}`).join(' | ');
+
+                aoa.push([
+                    String(r.nReserva || ''),
+                    String(r.nReservaHotel || ''),
+                    fechaTexto, // Forzado como cadena DD/MM/AAAA
+                    String(r.horarioTurno || ''),
+                    String(r.habitacion || ''),
+                    String(r.huespedes || ''),
+                    String(r.servicio || ''),
+                    String(r.duracion || ''),
+                    String(r.asignadoA || 'Sin asignar'),
+                    String(r.estado || ''),
+                    String(r.telefono || ''),
+                    String(r.notasUsuario || ''),
+                    notasInternas
+                ]);
+            });
+
+            // Generar la hoja forzando que todas las celdas sean leídas estrictamente como TEXTO ('s')
+            const worksheet = XLSX.utils.aoa_to_sheet(aoa, { raw: true });
+            
+            // Recorrer cada celda y asignarle explícitamente el tipo String ('s') para que Excel no auto-convierta la fecha
+            for (let cell in worksheet) {
+                if (cell[0] === '!') continue;
+                worksheet[cell].t = 's';
+            }
+
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Reservas Spa");
+            XLSX.writeFile(workbook, `Reservas_Spa_${new Date().toISOString().slice(0, 10)}.xlsx`);
+            toast('¡Archivo Excel exportado correctamente!');
+        }
+
+        // Script para columnas redimensionables
+        (function () {
+            var KEY = 'spa:anchos-columnas-v1';
+            var COL = [
+                [110, 180, 130], /* 0 Reserva Spa */
+                [90, 150, 110],  /* 1 Reserva Hotel */
+                [110, 160, 130], /* 2 Fecha y Hora */
+                [70, 100, 80],   /* 3 Habitación */
+                [120, 250, 150], /* 4 Huésped */
+                [130, 250, 160], /* 5 Servicio */
+                [110, 180, 120], /* 6 Asignado a */
+                [115, 150, 130], /* 7 Estado */
+                [90, 150, 110],  /* 8 Teléfono */
+                [110, 130, 115]  /* 9 Acciones */
+            ];
+            function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
+            function initResizers() {
+                var table = document.querySelector('.novedades-table');
+                if (!table) return;
+                var ths = Array.prototype.slice.call(table.querySelectorAll('thead th'));
+                if (ths.length !== COL.length) return;
+                var anchos = COL.map(c => c[2]);
+
+                function aplicar() {
+                    let total = 0;
+                    ths.forEach((th, i) => {
+                        th.style.width = anchos[i] + 'px';
+                        total += anchos[i];
+                    });
+                    table.style.width = total + 'px';
+                }
+
+                ths.forEach((th, i) => {
+                    var c = COL[i];
+                    if (!c) return;
+                    if (getComputedStyle(th).position === 'static') th.style.position = 'relative';
+                    var g = document.createElement('span');
+                    g.className = 'col-resizer';
+                    g.title = 'Arrastrá para ajustar el ancho · doble clic para restablecer';
+                    th.appendChild(g);
+
+                    g.addEventListener('dblclick', e => {
+                        e.preventDefault();
+                        anchos = COL.map(col => col[2]);
+                        try { localStorage.removeItem(KEY); } catch(_) {}
+                        aplicar();
+                    });
+                    g.addEventListener('click', e => e.stopPropagation());
+                    g.addEventListener('pointerdown', e => {
+                        e.preventDefault(); e.stopPropagation();
+                        var x0 = e.clientX, w0 = anchos[i];
+                        g.classList.add('is-dragging'); document.body.style.cursor = 'col-resize';
+                        try { g.setPointerCapture(e.pointerId); } catch (_) {}
+                        function mover(ev) {
+                            anchos[i] = clamp(w0 + ev.clientX - x0, c[0], c[1]);
+                            aplicar();
+                        }
+                        function soltar() {
+                            g.classList.remove('is-dragging'); document.body.style.cursor = '';
+                            g.removeEventListener('pointermove', mover); g.removeEventListener('pointerup', soltar);
+                            try { localStorage.setItem(KEY, JSON.stringify(anchos)); } catch(_) {}
+                        }
+                        g.addEventListener('pointermove', mover);
+                        g.addEventListener('pointerup', soltar);
+                    });
+                });
+
+                try {
+                    var guardados = JSON.parse(localStorage.getItem(KEY) || 'null');
+                    if (Array.isArray(guardados) && guardados.length === COL.length) {
+                        anchos = guardados.map((w, i) => COL[i] ? clamp(+w || COL[i][2], COL[i][0], COL[i][1]) : COL[i][2]);
+                    }
+                } catch(_) {}
+                aplicar();
+            }
+
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initResizers);
+            else initResizers();
+        })();
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const hoy = new Date();
+            const pad = n => String(n).padStart(2, '0');
+            $('fecha-turno').value = `${hoy.getFullYear()}-${pad(hoy.getMonth() + 1)}-${pad(hoy.getDate())}`;
+
+            $('reserva-spa-form').addEventListener('submit', guardarNuevaReserva);
+            $('export-excel-btn').addEventListener('click', exportarExcel);
+
+            ['filter-estado', 'filter-fecha', 'filter-text'].forEach(id => {
+                $(id).addEventListener('input', filtrarYRenderizar);
+                $(id).addEventListener('change', filtrarYRenderizar);
+            });
+
+            $('clear-filters-btn').addEventListener('click', () => {
+                $('filter-estado').value = '';
+                $('filter-fecha').value = '';
+                $('filter-text').value = '';
+                filtrarYRenderizar();
+            });
+
+            $('novedades-log').addEventListener('click', e => {
+                const btnEliminar = e.target.closest('[data-action="eliminar"]');
+                if (btnEliminar) {
+                    e.stopPropagation();
+                    eliminarReservaPorId(btnEliminar.dataset.id);
+                    return;
+                }
+                const btnEstado = e.target.closest('[data-action="toggle-estado"]');
+                if (btnEstado) {
+                    e.stopPropagation();
+                    cambiarEstadoDirecto(btnEstado.dataset.id);
+                    return;
+                }
+                const tr = e.target.closest('tr');
+                if (tr && tr.dataset.id) {
+                    const r = reservas.find(x => x.id === tr.dataset.id);
+                    if (r) abrirModal(r);
+                }
+            });
+
+            $('btn-close-modal').addEventListener('click', cerrarModal);
+            $('detail-modal').addEventListener('click', e => { if (e.target.id === 'detail-modal') cerrarModal(); });
+            document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarModal(); });
+            
+            $('btn-delete-reserva').addEventListener('click', () => {
+                if (seleccionada) {
+                    eliminarReservaPorId(seleccionada.id);
+                }
+            });
+
+            $('btn-edit-toggle').addEventListener('click', () => {
+                if (!seleccionada) return;
+                modoEdicion = !modoEdicion;
+                pintarContenidoModal();
+            });
+
+            $('btn-copy-full').addEventListener('click', async () => {
+                if (!seleccionada) return;
+                const r = seleccionada;
+                const txt = `=== TURNO SPA #${r.nReserva} ===\nReserva Hotel: ${r.nReservaHotel || 'N/A'}\nFecha: ${r.fechaTurno} - ${r.horarioTurno}hs\nHabitación: ${r.habitacion}\nHuésped: ${r.huespedes}\nServicio: ${r.servicio} (${r.duracion || '-'})\nTeléfono: ${r.telefono || '-'}\nAsignado a: ${r.asignadoA || 'Sin asignar'}\nEstado: ${r.estado}\nNotas: ${r.notasUsuario || 'Ninguna'}`;
+                await navigator.clipboard.writeText(txt);
+                toast('Datos copiados al portapapeles.');
+            });
+
+            $('logout-btn').addEventListener('click', cerrarSesion);
+            $('nota-form').addEventListener('submit', agregarNota);
+
+            $('notas-lista').addEventListener('click', async e => {
+                const b = e.target.closest('.nota-del');
+                if (b && seleccionada && session?.puedeBorrar) {
+                    const i = Number(b.dataset.i);
+                    const nota = seleccionada.notas[i];
+                    if (nota && confirm('¿Borrar esta nota?')) {
+                        await db.collection(COL_SPA).doc(seleccionada.id).update({
+                            notas: firebase.firestore.FieldValue.arrayRemove(nota)
+                        });
+                        toast('Nota borrada.');
+                    }
+                }
+            });
+
+            $('login-form').addEventListener('submit', async e => {
+                e.preventDefault();
+                const err = $('login-error');
+                err.classList.add('hidden');
+                try {
+                    await iniciarSesion($('login-usuario').value, $('login-clave').value);
+                } catch (ex) {
+                    err.textContent = ex.message;
+                    err.classList.remove('hidden');
+                }
+            });
+
+            try {
+                const cfg = window.APP_CONFIG && window.APP_CONFIG.FIREBASE_CONFIG;
+                if (!cfg) throw new Error('config.js no cargado.');
+                if (!firebase.apps.length) firebase.initializeApp(cfg);
+                auth = firebase.auth();
+                db = firebase.firestore();
+                await auth.signInAnonymously();
+            } catch (err) {
+                mostrarLogin();
+                $('login-error').textContent = 'Error al conectar: ' + err.message;
+                $('login-error').classList.remove('hidden');
+                return;
+            }
+
+            let guardado = null;
+            try { guardado = sessionStorage.getItem(SESSION_KEY); } catch (_) {}
+            if (guardado) {
+                try { await iniciarSesion(guardado, null); return; } catch (_) {}
+            }
+            mostrarLogin();
+        });
+    </script>
+</body>
+</html>

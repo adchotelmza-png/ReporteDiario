@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-pagina="reservas">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -8,11 +8,11 @@
 
     <!-- Configuración de Firebase (config.js) -->
     <script src="config.js"></script>
+    <script src="menu.js" defer></script>
 
     <script>
         (function () {
-            var theme = 'dark';
-            try { if (localStorage.getItem('theme') === 'light') theme = 'light'; } catch (e) {}
+            var theme = 'light';   // esta página es siempre de tema claro (fondo naranja muy claro)
             document.documentElement.setAttribute('data-theme', theme);
             document.write('<link id="theme-stylesheet" rel="stylesheet" href="' + theme + '.css">');
         })();
@@ -99,12 +99,14 @@
         .toast-error { background: #ef4444; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
+    <link rel="stylesheet" href="comun.css">
     <link rel="icon" type="image/png" href="Icono.png">
 </head>
 <body>
 
     <!-- Inicio de sesión (mismos usuarios y claves del Registro Diario) -->
     <div id="login-view" class="login-box hidden">
+        <div class="login-menu"><span data-menu-slot></span></div>
         <h2>Agua del Corral</h2>
         <p class="sub">Panel de Reservas Web. Ingresá con tu usuario y clave del Registro Diario.</p>
         <form id="login-form" autocomplete="on">
@@ -120,9 +122,12 @@
     <!-- Panel -->
     <div id="panel-view" class="panel-container hidden">
         <div class="brand-header">
-            <div>
-                <h1>Agua del Corral</h1>
-                <p>Restaurante &amp; SPA — Panel de Reservas Recibidas</p>
+            <div class="brand-left">
+                <span data-menu-slot></span>
+                <div>
+                    <h1>Agua del Corral</h1>
+                    <p>Restaurante &amp; SPA — Panel de Reservas Recibidas</p>
+                </div>
             </div>
             <div class="header-right">
                 <span id="user-name"></span>

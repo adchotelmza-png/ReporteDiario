@@ -371,7 +371,7 @@
                             <option value="Mantenimiento">Mantenimiento</option>
                             <option value="Administración">Administración</option>
                             <option value="Reservas">Reservas</option>
-                            <option value="Restaurante">Restaurante</option>
+                            <option value="Alimentos y Bebidas">Alimentos y Bebidas</option>
                             <option value="Spa">Spa</option>
                             <option value="__otros">Otros / sin área</option>
                         </select>
@@ -516,7 +516,7 @@
                         <option value="Mantenimiento">Mantenimiento</option>
                         <option value="Administración">Administración</option>
                         <option value="Reservas">Reservas</option>
-                        <option value="Restaurante">Restaurante</option>
+                        <option value="Alimentos y Bebidas">Alimentos y Bebidas</option>
                         <option value="Spa">Spa</option>
                     </select>
                 </div>
@@ -1039,8 +1039,8 @@
     </script>
 
     <script type="module">
-        import { FirebaseService } from './firebase-service.js?v=20261030e';
-        import { UI } from './ui.js?v=20261030e';
+        import { FirebaseService } from './firebase-service.js?v=20261031a';
+        import { UI } from './ui.js?v=20261031a';
         UI.init();
         FirebaseService.init(session => UI.onAuthSuccess(session), () => UI.onAuthError(), err => UI.onInitError(err))
             .catch(err => UI.onInitError(err));

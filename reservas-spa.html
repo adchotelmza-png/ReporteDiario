@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-pagina="spa">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -9,6 +9,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- Configuración de Firebase (config.js) -->
     <script src="config.js"></script>
+    <script src="menu.js" defer></script>
 
     <style>
         .hidden { display: none !important; }
@@ -111,12 +112,14 @@
         .toast { position: fixed; bottom: 20px; right: 20px; background: #10b981; color: white; padding: 0.75rem 1.25rem; border-radius: 8px; font-size: 0.9rem; font-weight: 600; z-index: 2000; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
         .toast-error { background: #ef4444; }
     </style>
+    <link rel="stylesheet" href="comun.css">
     <link rel="icon" type="image/png" href="Icono.png">
 </head>
 <body>
 
     <!-- Pantalla de Login -->
     <div id="login-view" class="login-box hidden">
+        <div class="login-menu"><span data-menu-slot></span></div>
         <h2>Agua del Corral</h2>
         <p class="sub">Panel de Spa. Ingresá con tu usuario y clave.</p>
         <form id="login-form">
@@ -132,9 +135,12 @@
     <!-- Vista Principal Unificada -->
     <div id="panel-view" class="panel-container hidden">
         <div class="brand-header">
-            <div>
-                <h1>Agua del Corral</h1>
-                <p>Restaurante &amp; SPA — Gestión y Registro de Turnos de Spa</p>
+            <div class="brand-left">
+                <span data-menu-slot></span>
+                <div>
+                    <h1>Agua del Corral</h1>
+                    <p>Restaurante &amp; SPA — Gestión y Registro de Turnos de Spa</p>
+                </div>
             </div>
             <div class="header-right">
                 <span id="user-name"></span>

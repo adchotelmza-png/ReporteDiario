@@ -1,8 +1,8 @@
 /* =====================================================================
    ui.js — Interfaz de usuario, accesibilidad y alarmas
    ===================================================================== */
-import { FirebaseService, PERMISOS } from './firebase-service.js?v=20261030e';
-import { AdminPanel } from './admin.js?v=20261030e';
+import { FirebaseService, PERMISOS } from './firebase-service.js?v=20261031a';
+import { AdminPanel } from './admin.js?v=20261031a';
 
 /* ---------- Utilidades ---------- */
 const can = p => FirebaseService.can(p);
@@ -18,7 +18,9 @@ const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = se
 /* Los registros viejos guardaban un email en lugar del nombre real: se muestra solo la parte anterior a la @ */
 const corto = s => String(s || '').split('@')[0];
 const usuarioDe = n => n.userEmail ? corto(n.userEmail) : 'Sistema';
-const estadoDe = n => n.estado === 'Resuelto' ? 'Resuelto' : 'Pendiente';   // los registros viejos "En curso" cuentan como Pendiente
+/* Los registros viejos guardados como "Completado" cuentan como Resuelto; cualquier otro valor (p. ej. "En curso") cuenta como Pendiente */
+const esResuelto = n => n.estado === 'Resuelto' || n.estado === 'Completado';
+const estadoDe = n => esResuelto(n) ? 'Resuelto' : 'Pendiente';   // los registros viejos "En curso" cuentan como Pendiente
 const novedadDate = n => n.timestamp?.toDate ? n.timestamp.toDate() : null;
 const normTxt = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
 
@@ -44,9 +46,9 @@ const DRAFT_KEY = 'registro-diario:borrador-novedad';
 const DRAFT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 /* Horas que una novedad "Pendiente" puede estar abierta antes de marcarse como atrasada */
 const STALE_HOURS = { Urgente: 4, Alta: 12, Media: 24, Baja: 48 };
-/* Áreas/Elementos fijos (el orden de esta lista es el orden en que salen en el reporte) */
-const AREAS = ['Recepción', 'HSKP', 'Mantenimiento', 'Administración', 'Reservas', 'Restaurante', 'Spa'];
-const NOTIFICADO_OPCIONES = ['Mantenimiento', 'HSKP', 'Front', 'Jefe Recepción', 'Gerencia', 'Reservas', 'Administración', 'Spa', 'Restaurante'];
+/* Áreas/Elementos fijos actualizados a Alimentos y Bebidas */
+const AREAS = ['Recepción', 'HSKP', 'Mantenimiento', 'Administración', 'Reservas', 'Alimentos y Bebidas', 'Spa'];
+const NOTIFICADO_OPCIONES = ['Mantenimiento', 'HSKP', 'Front', 'Jefe Recepción', 'Gerencia', 'Reservas', 'Administración', 'Spa', 'Alimentos y Bebidas'];
 const PRIORIDAD_BADGE = { Urgente: 'badge-urgente', Alta: 'badge-alta', Media: 'badge-media' };
 const LOGIN_ERRORS = {
     'app/invalid-credential': 'Usuario o clave incorrectos.',
@@ -56,7 +58,7 @@ const LOGIN_ERRORS = {
 /* Devuelve el área oficial de una novedad (aunque se haya escrito con otra mayúscula o sin tilde); null si es un valor viejo libre */
 const areaDe = n => AREAS.find(a => normTxt(a) === normTxt(n.areaElemento)) || null;
 const isStale = n => {
-    if (n.estado === 'Resuelto') return false;
+    if (esResuelto(n)) return false;
     const d = novedadDate(n);
     return !!d && (Date.now() - d.getTime()) / 36e5 >= (STALE_HOURS[n.prioridad] ?? 24);
 };
@@ -84,7 +86,7 @@ function abrirModalDetalleMovil(n) {
         </div>
         <div style="display:flex; justify-content:space-between; ${sep}">
             <div>${lbl('Prioridad:')}<br><span class="badge ${PRIORIDAD_BADGE[n.prioridad] || 'badge-baja'}" style="margin-top:2px; display:inline-block;">${escapeHTML(n.prioridad)}</span></div>
-            <div style="text-align:right;">${lbl('Estado:')}<br><strong style="color:${n.estado === 'Resuelto' ? '#10b981' : '#f59e0b'}">${escapeHTML(estadoDe(n))}</strong></div>
+            <div style="text-align:right;">${lbl('Estado:')}<br><strong style="color:${esResuelto(n) ? '#10b981' : '#f59e0b'}">${escapeHTML(estadoDe(n))}</strong></div>
         </div>
         <div style="display:flex; justify-content:space-between; ${sep}">
             <div>${lbl('Área / Elemento:')}<br>${escapeHTML(n.areaElemento || '-')}</div>
@@ -99,7 +101,7 @@ function abrirModalDetalleMovil(n) {
     const btnEstado = $('mobile-btn-estado');
     btnEstado.dataset.id = n.id;
     btnEstado.style.backgroundColor = btnEstado.style.borderColor = btnEstado.style.color = '';
-    if (n.estado === 'Resuelto') {
+    if (esResuelto(n)) {
         btnEstado.textContent = 'Marcar Pendiente';
         btnEstado.className = 'button button-orange';
     } else {
@@ -144,7 +146,7 @@ export const UI = {
         let pendientes = 0, urgentes = 0, atrasadas = 0, deHoy = 0;
         currentNovedades.forEach(n => {
             if (toLocalISODate(novedadDate(n) || new Date()) === hoy) deHoy++;
-            if (n.estado === 'Resuelto') return;
+            if (esResuelto(n)) return;
             pendientes++;
             if (n.prioridad === 'Urgente') urgentes++;
             if (isStale(n)) atrasadas++;
@@ -546,7 +548,7 @@ export const UI = {
         tbody.innerHTML = pageData.map(n => {
             const d = novedadDate(n) || new Date();
             const checked = selectedNovedadIds.has(n.id) ? 'checked' : '';
-            const resuelto = n.estado === 'Resuelto';
+            const resuelto = esResuelto(n);
 
             const creador = `Creado por: ${usuarioDe(n)} el ${formatFullTimestamp(novedadDate(n))}`;
             const editor = n.lastEditedBy ? `Modificado por ${corto(n.lastEditedBy)} el ${formatFullTimestamp(n.lastEditedAt?.toDate?.())}` : '';
@@ -718,7 +720,7 @@ export const UI = {
 
     /* ---------- Estado: un clic alterna Pendiente / Resuelto ---------- */
     async cambiarEstado(id, n) {
-        const nuevo = n.estado === 'Resuelto' ? 'Pendiente' : 'Resuelto';
+        const nuevo = esResuelto(n) ? 'Pendiente' : 'Resuelto';
         await FirebaseService.changeEstadoNovedad(id, nuevo);
         this.toast(nuevo === 'Resuelto' ? 'Novedad marcada como Resuelta' : 'Novedad marcada como Pendiente', 'success');
     },

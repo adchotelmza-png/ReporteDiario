@@ -1,0 +1,112 @@
+/* =====================================================================
+   comun.css — Estilo compartido de las páginas del hotel
+   ---------------------------------------------------------------------
+   Se carga DESPUÉS del CSS propio de cada página. Da la misma "familia"
+   visual a todas (tipografía, encabezado, menú sándwich, acento celeste,
+   bordes y sombras) y solo cambia el COLOR DE FONDO según la página:
+
+       reservas-spa.html   -> celeste claro
+       panelreservas.html  -> naranja muy claro
+       checklist.html      -> verde muy claro
+
+   Para cambiar un fondo: editar la variable --fondo-pagina de su bloque.
+   ===================================================================== */
+
+:root {
+    --acento: #0891b2;          /* celeste/turquesa de la marca (igual al del Registro Diario) */
+    --acento-suave: rgba(8, 145, 178, 0.12);
+    --texto: #1e293b;
+}
+
+/* ---------- Fondo de cada página ---------- */
+html[data-pagina="spa"]       { --fondo-pagina: #dff1fb; }   /* celeste claro */
+html[data-pagina="reservas"]  { --fondo-pagina: #fff2e2; }   /* naranja muy claro */
+html[data-pagina="checklist"] { --fondo-pagina: #e9f8ef; }   /* verde muy claro */
+
+html[data-pagina] body {
+    background-color: var(--fondo-pagina) !important;
+    color: var(--texto);
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ---------- Encabezado común ---------- */
+.brand-left { display: flex; align-items: center; gap: 0.9rem; min-width: 0; }
+.brand-header { border-bottom: 2px solid var(--acento-suave); }
+.brand-header h1 { color: var(--acento); }
+
+/* Tarjetas y cuadros blancos: mismo borde, radio y sombra en todas las páginas */
+html[data-pagina] .login-box,
+html[data-pagina] .reserva-card,
+html[data-pagina] .modal-card {
+    border: 1px solid rgba(8, 145, 178, 0.16);
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+}
+.login-box .login-menu { display: flex; justify-content: flex-start; margin: -0.4rem 0 0.8rem; }
+
+/* ---------- Menú sándwich (mismo que el del Registro Diario) ---------- */
+.sandwich-menu-container { position: relative; display: inline-block; flex: none; }
+.sandwich-btn {
+    background: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(8, 145, 178, 0.28);
+    color: var(--acento);
+    width: 42.78px; height: 42.78px;
+    border-radius: 0.5rem;
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer; padding: 0;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+.sandwich-btn:hover { background: #ffffff; }
+.sandwich-btn:active { transform: scale(0.96); }
+.sandwich-btn:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+.sandwich-icon { width: 22px; height: 22px; }
+
+.sandwich-dropdown {
+    position: absolute; top: calc(100% + 8px); left: 0;
+    --pop-bg: #ffffff; --pop-fg: #1f2937; --pop-border: rgba(0, 0, 0, 0.12);
+    background: var(--pop-bg); color: var(--pop-fg);
+    border: 1px solid var(--pop-border);
+    border-radius: 12px; min-width: 230px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.14);
+    z-index: 10005; padding: 0.5rem;
+    animation: sandwichFade 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.sandwich-dropdown[hidden] { display: none !important; }
+@keyframes sandwichFade {
+    from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.sandwich-dropdown a {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.7rem 0.9rem; color: inherit; text-decoration: none;
+    font-size: 0.9rem; font-weight: 500; border-radius: 8px;
+    transition: background 0.15s ease, transform 0.15s ease;
+}
+.sandwich-dropdown a:hover { background: rgba(8, 145, 178, 0.12); color: var(--acento); transform: translateX(3px); }
+.sandwich-dropdown a svg { width: 18px; height: 18px; flex: none; opacity: 0.8; }
+.sandwich-dropdown a:hover svg { opacity: 1; }
+.sandwich-dropdown a.es-actual { background: rgba(8, 145, 178, 0.10); color: var(--acento); font-weight: 700; }
+.sandwich-dropdown .menu-texto { flex: 1; }
+.sandwich-dropdown .menu-actual { font-weight: 800; }
+
+/* Variante sobre una barra oscura (encabezado del Check List) */
+.menu-sobre-oscuro .sandwich-btn { background: rgba(255, 255, 255, 0.14); border-color: rgba(255, 255, 255, 0.3); color: #ffffff; }
+.menu-sobre-oscuro .sandwich-btn:hover { background: rgba(255, 255, 255, 0.26); }
+
+/* ---------- Check List: misma paleta que el resto (el celeste de la marca en lugar del azul) ---------- */
+html[data-pagina="checklist"] .bg-blue-600 { background-color: var(--acento) !important; }
+html[data-pagina="checklist"] .hover\:bg-blue-700:hover { background-color: #0e7490 !important; }
+html[data-pagina="checklist"] .text-blue-400,
+html[data-pagina="checklist"] .text-blue-600 { color: var(--acento) !important; }
+html[data-pagina="checklist"] .check-mark { color: var(--acento) !important; }
+html[data-pagina="checklist"] .focus\:border-blue-500:focus { border-color: var(--acento) !important; }
+html[data-pagina="checklist"] #cab-checklist { background-color: #0b4f63 !important; }
+html[data-pagina="checklist"] #cab-tabs { background-color: #0e7490 !important; }
+html[data-pagina="checklist"] #app { border-color: rgba(8, 145, 178, 0.16); }
+
+@media (max-width: 520px) {
+    .brand-left { gap: 0.6rem; }
+    .sandwich-dropdown { min-width: min(260px, calc(100vw - 2.5rem)); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .sandwich-dropdown { animation: none; }
+}

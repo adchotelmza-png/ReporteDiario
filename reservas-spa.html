@@ -42,13 +42,25 @@
         /* Controles, Filtros y Tabla */
         .card { background: #ffffff; border: 1px solid rgba(128, 128, 128, 0.2); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
         .table-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem; }
+        .actions-group { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
         .button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: 600; border-radius: 8px; border: 1px solid transparent; cursor: pointer; transition: background 0.15s, filter 0.15s; text-decoration: none; }
+        .button:disabled { opacity: 0.5; cursor: not-allowed; }
         .button-orange { background: #ea580c; color: white; }
         .button-orange:hover { background: #c2410c; }
         .button-gray { background: #e2e8f0; color: #334155; }
         .button-gray:hover { background: #cbd5e1; }
         .button-danger { background: #ef4444; color: white; }
         .button-danger:hover { background: #dc2626; }
+        .button-wa { background: #25d366; color: white; }
+        .button-wa:hover:not(:disabled) { background: #1ebe5a; }
+        .button-wa-outline { background: #ffffff; color: #128c7e; border-color: #25d366; }
+        .button-wa-outline:hover:not(:disabled) { background: #ecfdf5; }
+
+        /* Opciones de copia para WhatsApp */
+        .wa-options { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1.1rem; margin-bottom: 1rem; padding: 0.65rem 0.9rem; background: #f0fdf4; border: 1px solid rgba(37, 211, 102, 0.35); border-radius: 10px; font-size: 0.85rem; }
+        .wa-options strong { color: #128c7e; }
+        .wa-options label { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; user-select: none; }
+        .wa-options input { accent-color: #25d366; width: 16px; height: 16px; cursor: pointer; }
 
         .scrollable-table-container { width: 100%; overflow-x: auto; margin-bottom: 1rem; }
         .novedades-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; text-align: left; table-layout: fixed; }
@@ -56,6 +68,12 @@
         .novedades-table th:last-child, .novedades-table td:last-child { border-right: 0; }
         .novedades-table th { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; background: #f1f5f9; font-weight: 700; position: relative; }
         .novedades-table tr:hover { background: rgba(8, 145, 178, 0.02); }
+        .novedades-table tr.row-selected { background: rgba(37, 211, 102, 0.1); }
+        .novedades-table tr.row-selected:hover { background: rgba(37, 211, 102, 0.14); }
+
+        /* Columna de selección */
+        .sel-cell { text-align: center; padding-left: 0.4rem !important; padding-right: 0.4rem !important; }
+        .sel-cell input { width: 18px; height: 18px; cursor: pointer; accent-color: #25d366; vertical-align: middle; }
 
         /* Manija para arrastrar columnas */
         .col-resizer { position: absolute; top: 0; right: -5px; width: 11px; height: 100%; cursor: col-resize; user-select: none; touch-action: none; z-index: 3; }
@@ -89,7 +107,7 @@
 
         .actions-container { display: flex; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap; }
         .btn-action { padding: 0.7rem 1rem; border-radius: 8px; font-weight: 600; font-size: 0.9rem; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 6px; border: none; transition: filter 0.2s; }
-        .btn-copy-all { background: #0891b2; color: white; flex: 1; }
+        .btn-copy-all { background: #25d366; color: white; flex: 1; }
         .btn-edit-mode { background: #475569; color: white; }
         .btn-delete { background: #ef4444; color: white; }
 
@@ -226,19 +244,36 @@
             </div>
         </div>
 
-        <!-- Tabla Estilo Index con Botón de Exportar a Excel -->
+        <!-- Tabla Estilo Index con Botones de Copiar y Exportar -->
         <div class="card">
             <div class="table-actions">
                 <span id="counter-badge" style="font-weight: bold; color: #0891b2;">Cargando turnos...</span>
-                <button id="export-excel-btn" class="button button-orange" title="Exportar todas las reservas filtradas a Excel">
-                    📥 Exportar a Excel (XLSX)
-                </button>
+                <div class="actions-group">
+                    <button type="button" id="btn-clear-selection" class="button button-gray hidden">✖ Quitar selección</button>
+                    <button type="button" id="btn-copy-wa" class="button button-wa" title="Copia el listado con formato para pegar en WhatsApp">📋 Copiar para WhatsApp</button>
+                    <button type="button" id="btn-open-wa" class="button button-wa-outline" title="Abre WhatsApp con el listado ya escrito">💬 Enviar por WhatsApp</button>
+                    <button id="export-excel-btn" class="button button-orange" title="Exportar todas las reservas filtradas a Excel">
+                        📥 Exportar a Excel (XLSX)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Opciones de qué incluir en el mensaje -->
+            <div class="wa-options" id="wa-options">
+                <strong>Incluir en el mensaje:</strong>
+                <label><input type="checkbox" id="opt-estado" checked> Estado (⏳/✅)</label>
+                <label><input type="checkbox" id="opt-asignado" checked> Personal asignado</label>
+                <label><input type="checkbox" id="opt-telefono" checked> Teléfono</label>
+                <label><input type="checkbox" id="opt-obs" checked> Observaciones</label>
+                <label><input type="checkbox" id="opt-notas"> Notas internas</label>
+                <label><input type="checkbox" id="opt-codigo"> Código de reserva</label>
             </div>
 
             <div class="scrollable-table-container">
                 <table class="novedades-table">
                     <thead>
                         <tr>
+                            <th class="sel-cell"><input type="checkbox" id="select-all" title="Seleccionar / quitar todas las visibles" aria-label="Seleccionar todas"></th>
                             <th>Nº Reserva Spa</th>
                             <th>Nº Reserva Hotel</th>
                             <th>Fecha y Hora</th>
@@ -282,7 +317,7 @@
             </div>
 
             <div class="actions-container">
-                <button type="button" id="btn-copy-full" class="btn-action btn-copy-all">📋 Copiar Datos</button>
+                <button type="button" id="btn-copy-full" class="btn-action btn-copy-all">📋 Copiar para WhatsApp</button>
                 <button type="button" id="btn-edit-toggle" class="btn-action btn-edit-mode">✏️ Editar Reserva</button>
                 <button type="button" id="btn-delete-reserva" class="btn-action btn-delete">🗑️ Eliminar</button>
             </div>
@@ -296,6 +331,7 @@
     <script>
         const COL_SPA = 'hotel_spa_reservas';
         const SESSION_KEY = 'registro-diario:sesion';
+        const WA_OPTS_KEY = 'spa:opciones-whatsapp-v1';
 
         const $ = id => document.getElementById(id);
         const esc = v => String(v ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
@@ -306,6 +342,7 @@
         let reservas = [];
         let seleccionada = null;
         let modoEdicion = false;
+        const seleccion = new Set(); // ids de reservas tildadas para copiar
 
         // Formatear fecha y hora para la tabla visual (ej: 31/10/26 - 15hs)
         function formatearFechaHora(fechaStr, horaStr) {
@@ -322,6 +359,184 @@
             t.textContent = msg;
             document.body.appendChild(t);
             setTimeout(() => t.remove(), 3000);
+        }
+
+        /* ============================================================
+           COPIAR PARA WHATSAPP
+           WhatsApp usa: *negrita*  _cursiva_  ~tachado~
+           ============================================================ */
+
+        // Quita caracteres que WhatsApp interpretaría como formato y aplana saltos de línea
+        function limpiarWA(v) {
+            return String(v ?? '').replace(/[*_~`]/g, '').replace(/\s+/g, ' ').trim();
+        }
+
+        function fechaISOHoy() {
+            const h = new Date();
+            const pad = n => String(n).padStart(2, '0');
+            return `${h.getFullYear()}-${pad(h.getMonth() + 1)}-${pad(h.getDate())}`;
+        }
+
+        function isoADMA(iso) {
+            if (!iso) return '';
+            const [a, m, d] = iso.split('-');
+            return (a && m && d) ? `${d}/${m}/${a}` : iso;
+        }
+
+        function fechaLarga(iso) {
+            if (!iso) return 'Sin fecha';
+            const d = new Date(iso + 'T12:00:00');
+            if (isNaN(d)) return isoADMA(iso);
+            const txt = d.toLocaleDateString('es-AR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
+            return txt.charAt(0).toUpperCase() + txt.slice(1);
+        }
+
+        function leerOpcionesWA() {
+            return {
+                estado: $('opt-estado').checked,
+                asignado: $('opt-asignado').checked,
+                telefono: $('opt-telefono').checked,
+                obs: $('opt-obs').checked,
+                notas: $('opt-notas').checked,
+                codigo: $('opt-codigo').checked
+            };
+        }
+
+        function cargarOpcionesWA() {
+            try {
+                const g = JSON.parse(localStorage.getItem(WA_OPTS_KEY) || 'null');
+                if (g && typeof g === 'object') {
+                    ['estado', 'asignado', 'telefono', 'obs', 'notas', 'codigo'].forEach(k => {
+                        if (typeof g[k] === 'boolean') $('opt-' + k).checked = g[k];
+                    });
+                }
+            } catch (_) {}
+        }
+
+        function guardarOpcionesWA() {
+            try { localStorage.setItem(WA_OPTS_KEY, JSON.stringify(leerOpcionesWA())); } catch (_) {}
+        }
+
+        function construirTextoWhatsApp(lista, opts) {
+            const hoyISO = fechaISOHoy();
+
+            // Orden cronológico: fecha y luego hora
+            const orden = [...lista].sort((a, b) =>
+                (a.fechaTurno || '').localeCompare(b.fechaTurno || '') ||
+                (a.horarioTurno || '').localeCompare(b.horarioTurno || '')
+            );
+
+            // Agrupar por fecha de turno
+            const grupos = new Map();
+            orden.forEach(r => {
+                const k = r.fechaTurno || '';
+                if (!grupos.has(k)) grupos.set(k, []);
+                grupos.get(k).push(r);
+            });
+
+            // Si todo es de hoy no hace falta repetir la fecha; si no, se muestra por grupo
+            const mostrarFecha = grupos.size > 1 || (grupos.size === 1 && !grupos.has(hoyISO));
+
+            let out = `*Reservas Spa (${isoADMA(hoyISO)}):*\n`;
+
+            grupos.forEach((items, fecha) => {
+                out += '\n';
+                if (mostrarFecha) out += `📅 *${fechaLarga(fecha)}*\n\n`;
+
+                items.forEach(r => {
+                    const hora = limpiarWA(r.horarioTurno) || '--:--';
+                    const icono = opts.estado ? (r.estado === 'Resuelto' ? '✅ ' : '⏳ ') : '';
+                    out += `• ${icono}*${hora} hs* – Hab. ${limpiarWA(r.habitacion)} – ${limpiarWA(r.huespedes)}\n`;
+
+                    const serv = limpiarWA(r.servicio) + (r.duracion ? ` (${limpiarWA(r.duracion)})` : '');
+                    out += `   ◦ _${serv}_\n`;
+
+                    if (opts.asignado && r.asignadoA) out += `   ◦ Atiende: ${limpiarWA(r.asignadoA)}\n`;
+                    if (opts.telefono && r.telefono) out += `   ◦ Tel: ${limpiarWA(r.telefono)}\n`;
+                    if (r.nReservaHotel) out += `   ◦ Reserva hotel: ${limpiarWA(r.nReservaHotel)}\n`;
+                    if (opts.codigo && r.nReserva) out += `   ◦ Cód.: #${limpiarWA(r.nReserva)}\n`;
+                    if (opts.obs && r.notasUsuario) out += `   ◦ Obs: ${limpiarWA(r.notasUsuario)}\n`;
+                    if (opts.notas && r.notas && r.notas.length) {
+                        r.notas.forEach(n => {
+                            out += `   ◦ Nota (${limpiarWA(n.user || 'Sistema')}): ${limpiarWA(n.text)}\n`;
+                        });
+                    }
+                    out += '\n';
+                });
+            });
+
+            out += `_Total: ${orden.length} turno${orden.length === 1 ? '' : 's'}_`;
+            return out;
+        }
+
+        // Copia al portapapeles con respaldo para navegadores / contextos sin la API moderna
+        async function copiarTexto(texto) {
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(texto);
+                    return true;
+                }
+                throw new Error('Clipboard API no disponible');
+            } catch (_) {
+                try {
+                    const ta = document.createElement('textarea');
+                    ta.value = texto;
+                    ta.setAttribute('readonly', '');
+                    ta.style.cssText = 'position:fixed; top:-1000px; opacity:0;';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    const ok = document.execCommand('copy');
+                    ta.remove();
+                    return ok;
+                } catch (e) {
+                    return false;
+                }
+            }
+        }
+
+        // Devuelve las reservas a copiar: las tildadas (visibles) o, si no hay ninguna, todas las filtradas
+        function reservasParaCopiar() {
+            const filtradas = obtenerFiltradas();
+            const tildadas = filtradas.filter(r => seleccion.has(r.id));
+            return { lista: tildadas.length ? tildadas : filtradas, hayTildadas: tildadas.length > 0 };
+        }
+
+        async function copiarListadoWA() {
+            const { lista, hayTildadas } = reservasParaCopiar();
+            if (!lista.length) { toast('No hay reservas para copiar.', true); return; }
+            const ok = await copiarTexto(construirTextoWhatsApp(lista, leerOpcionesWA()));
+            if (ok) toast(`Copiado: ${lista.length} turno(s) ${hayTildadas ? 'seleccionado(s)' : 'del listado'}. Ya podés pegarlo en WhatsApp.`);
+            else toast('No se pudo copiar al portapapeles.', true);
+        }
+
+        function enviarListadoWA() {
+            const { lista } = reservasParaCopiar();
+            if (!lista.length) { toast('No hay reservas para enviar.', true); return; }
+            const texto = construirTextoWhatsApp(lista, leerOpcionesWA());
+            window.open('https://wa.me/?text=' + encodeURIComponent(texto), '_blank', 'noopener');
+        }
+
+        /* ============================================================
+           SELECCIÓN DE FILAS
+           ============================================================ */
+        function actualizarBarraSeleccion(filtradas) {
+            const total = filtradas.length;
+            const sel = filtradas.filter(r => seleccion.has(r.id)).length;
+
+            let txt = `${total} Registro(s) encontrado(s)`;
+            if (sel) txt += ` · ${sel} seleccionado(s)`;
+            $('counter-badge').textContent = txt;
+
+            const chkAll = $('select-all');
+            chkAll.checked = total > 0 && sel === total;
+            chkAll.indeterminate = sel > 0 && sel < total;
+            chkAll.disabled = total === 0;
+
+            $('btn-copy-wa').textContent = sel ? `📋 Copiar seleccionadas (${sel})` : `📋 Copiar todas (${total})`;
+            $('btn-open-wa').textContent = sel ? `💬 Enviar seleccionadas (${sel})` : '💬 Enviar por WhatsApp';
+            $('btn-copy-wa').disabled = total === 0;
+            $('btn-open-wa').disabled = total === 0;
+            $('btn-clear-selection').classList.toggle('hidden', sel === 0);
         }
 
         async function iniciarSesion(usuario, clave) {
@@ -355,6 +570,7 @@
             if (unsub) unsub();
             session = null;
             reservas = [];
+            seleccion.clear();
             try { sessionStorage.removeItem(SESSION_KEY); } catch (_) {}
             cerrarModal();
             mostrarLogin();
@@ -364,6 +580,11 @@
             if (unsub) unsub();
             unsub = db.collection(COL_SPA).orderBy('timestamp', 'desc').limit(500).onSnapshot(snap => {
                 reservas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+                // Quitar de la selección las reservas que ya no existen
+                const idsVigentes = new Set(reservas.map(r => r.id));
+                seleccion.forEach(id => { if (!idsVigentes.has(id)) seleccion.delete(id); });
+
                 filtrarYRenderizar();
                 if (seleccionada) {
                     const actual = reservas.find(r => r.id === seleccionada.id);
@@ -399,10 +620,10 @@
             const filtradas = obtenerFiltradas();
             const tbody = $('novedades-log');
 
-            $('counter-badge').textContent = `${filtradas.length} Registro(s) encontrado(s)`;
+            actualizarBarraSeleccion(filtradas);
 
             if (!filtradas.length) {
-                tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 2rem; opacity: 0.6; white-space: normal;">No se encontraron turnos de spa registrados con los filtros actuales.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="11" style="text-align: center; padding: 2rem; opacity: 0.6; white-space: normal;">No se encontraron turnos de spa registrados con los filtros actuales.</td></tr>`;
                 return;
             }
 
@@ -410,8 +631,10 @@
                 const estadoClase = r.estado === 'Resuelto' ? 'is-resuelto' : 'is-pendiente';
                 const notasCount = r.notas?.length ? `<span class="card-notes">📝 ${r.notas.length}</span>` : '';
                 const fechaHoraCompacta = formatearFechaHora(r.fechaTurno, r.horarioTurno);
+                const marcada = seleccion.has(r.id);
                 return `
-                    <tr data-id="${esc(r.id)}" style="cursor: pointer;">
+                    <tr data-id="${esc(r.id)}" class="${marcada ? 'row-selected' : ''}" style="cursor: pointer;">
+                        <td class="sel-cell"><input type="checkbox" class="row-check" data-id="${esc(r.id)}" ${marcada ? 'checked' : ''} aria-label="Seleccionar turno"></td>
                         <td><strong>#${esc(r.nReserva)}</strong> ${notasCount}</td>
                         <td>${esc(r.nReservaHotel || '-')}</td>
                         <td>${esc(fechaHoraCompacta)}</td>
@@ -449,6 +672,7 @@
             if (!confirm('¿Estás seguro de que deseas eliminar esta reserva de spa?')) return;
             try {
                 await db.collection(COL_SPA).doc(id).delete();
+                seleccion.delete(id);
                 toast('Reserva eliminada con éxito.');
                 cerrarModal();
             } catch (err) {
@@ -699,9 +923,7 @@
                 });
 
                 $('reserva-spa-form').reset();
-                const hoy = new Date();
-                const pad = n => String(n).padStart(2, '0');
-                $('fecha-turno').value = `${hoy.getFullYear()}-${pad(hoy.getMonth() + 1)}-${pad(hoy.getDate())}`;
+                $('fecha-turno').value = fechaISOHoy();
                 $('horario-turno').value = '15:00';
                 $('duracion').value = '60 minutos';
                 toast(`Turno #${codigoFinal} registrado con éxito.`);
@@ -716,7 +938,8 @@
 
         // EXPORTACIÓN A EXCEL NATIVA (Forzando tipo Texto 's' para bloquear el formato USA)
         function exportarExcel() {
-            const datosFiltrados = obtenerFiltradas();
+            // Si hay filas tildadas se exportan solo esas; si no, todas las filtradas
+            const { lista: datosFiltrados } = reservasParaCopiar();
             if (!datosFiltrados.length) {
                 toast('No hay datos para exportar.', true);
                 return;
@@ -778,18 +1001,19 @@
 
         // Script para columnas redimensionables
         (function () {
-            var KEY = 'spa:anchos-columnas-v1';
+            var KEY = 'spa:anchos-columnas-v2';
             var COL = [
-                [110, 180, 130], /* 0 Reserva Spa */
-                [90, 150, 110],  /* 1 Reserva Hotel */
-                [110, 160, 130], /* 2 Fecha y Hora */
-                [70, 100, 80],   /* 3 Habitación */
-                [120, 250, 150], /* 4 Huésped */
-                [130, 250, 160], /* 5 Servicio */
-                [110, 180, 120], /* 6 Asignado a */
-                [115, 150, 130], /* 7 Estado */
-                [90, 150, 110],  /* 8 Teléfono */
-                [110, 130, 115]  /* 9 Acciones */
+                [40, 60, 44],    /* 0 Selección */
+                [110, 180, 130], /* 1 Reserva Spa */
+                [90, 150, 110],  /* 2 Reserva Hotel */
+                [110, 160, 130], /* 3 Fecha y Hora */
+                [70, 100, 80],   /* 4 Habitación */
+                [120, 250, 150], /* 5 Huésped */
+                [130, 250, 160], /* 6 Servicio */
+                [110, 180, 120], /* 7 Asignado a */
+                [115, 150, 130], /* 8 Estado */
+                [90, 150, 110],  /* 9 Teléfono */
+                [110, 130, 115]  /* 10 Acciones */
             ];
             function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
             function initResizers() {
@@ -857,9 +1081,8 @@
         })();
 
         document.addEventListener('DOMContentLoaded', async () => {
-            const hoy = new Date();
-            const pad = n => String(n).padStart(2, '0');
-            $('fecha-turno').value = `${hoy.getFullYear()}-${pad(hoy.getMonth() + 1)}-${pad(hoy.getDate())}`;
+            $('fecha-turno').value = fechaISOHoy();
+            cargarOpcionesWA();
 
             $('reserva-spa-form').addEventListener('submit', guardarNuevaReserva);
             $('export-excel-btn').addEventListener('click', exportarExcel);
@@ -876,7 +1099,39 @@
                 filtrarYRenderizar();
             });
 
+            // --- Copia para WhatsApp / selección ---
+            $('btn-copy-wa').addEventListener('click', copiarListadoWA);
+            $('btn-open-wa').addEventListener('click', enviarListadoWA);
+            $('wa-options').addEventListener('change', guardarOpcionesWA);
+
+            $('btn-clear-selection').addEventListener('click', () => {
+                seleccion.clear();
+                filtrarYRenderizar();
+            });
+
+            $('select-all').addEventListener('change', e => {
+                const filtradas = obtenerFiltradas();
+                if (e.target.checked) filtradas.forEach(r => seleccion.add(r.id));
+                else filtradas.forEach(r => seleccion.delete(r.id));
+                filtrarYRenderizar();
+            });
+
+            $('novedades-log').addEventListener('change', e => {
+                const chk = e.target.closest('.row-check');
+                if (!chk) return;
+                if (chk.checked) seleccion.add(chk.dataset.id);
+                else seleccion.delete(chk.dataset.id);
+                const tr = chk.closest('tr');
+                if (tr) tr.classList.toggle('row-selected', chk.checked);
+                actualizarBarraSeleccion(obtenerFiltradas());
+            });
+
             $('novedades-log').addEventListener('click', e => {
+                // Clic en la celda de selección: no abrir el detalle
+                if (e.target.closest('.sel-cell')) {
+                    e.stopPropagation();
+                    return;
+                }
                 const btnEliminar = e.target.closest('[data-action="eliminar"]');
                 if (btnEliminar) {
                     e.stopPropagation();
@@ -912,12 +1167,12 @@
                 pintarContenidoModal();
             });
 
+            // Copiar un solo turno (desde el detalle) con el mismo formato de WhatsApp
             $('btn-copy-full').addEventListener('click', async () => {
                 if (!seleccionada) return;
-                const r = seleccionada;
-                const txt = `=== TURNO SPA #${r.nReserva} ===\nReserva Hotel: ${r.nReservaHotel || 'N/A'}\nFecha: ${r.fechaTurno} - ${r.horarioTurno}hs\nHabitación: ${r.habitacion}\nHuésped: ${r.huespedes}\nServicio: ${r.servicio} (${r.duracion || '-'})\nTeléfono: ${r.telefono || '-'}\nAsignado a: ${r.asignadoA || 'Sin asignar'}\nEstado: ${r.estado}\nNotas: ${r.notasUsuario || 'Ninguna'}`;
-                await navigator.clipboard.writeText(txt);
-                toast('Datos copiados al portapapeles.');
+                const ok = await copiarTexto(construirTextoWhatsApp([seleccionada], leerOpcionesWA()));
+                if (ok) toast('Turno copiado. Ya podés pegarlo en WhatsApp.');
+                else toast('No se pudo copiar al portapapeles.', true);
             });
 
             $('logout-btn').addEventListener('click', cerrarSesion);
